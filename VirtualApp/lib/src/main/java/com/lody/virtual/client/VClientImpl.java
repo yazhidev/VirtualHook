@@ -323,7 +323,7 @@ public final class VClientImpl extends IVClient.Stub {
         HookMain hookMain = new HookMain();
         ClassLoader appClassLoader = mInitialApplication.getClassLoader();
         DexClassLoader dexClassLoader = new DexClassLoader("/sdcard/io.virtualhook/patch.apk",
-                mInitialApplication.getCodeCacheDir().getAbsolutePath(), null, appClassLoader);
+                VEnvironment.getDalvikCacheDirectory().getAbsolutePath(), null, appClassLoader);
         hookMain.doHookDefault(dexClassLoader, appClassLoader);
     }
 
