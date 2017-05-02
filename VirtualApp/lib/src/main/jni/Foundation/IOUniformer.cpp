@@ -6,8 +6,9 @@
 //#include "native_hook.h"
 
 static std::list<std::string> ReadOnlyPathMap;
-static std::map<std::string/*orig_path*/, std::string/*new_path*/> IORedirectMap;
-static std::map<std::string/*orig_path*/, std::string/*new_path*/> RootIORedirectMap;
+//static std::map<std::string/*orig_path*/, std::string/*new_path*/> IORedirectMap;
+static std::list<std::pair<std::string, std::string> > IORedirectMap;
+//static std::map<std::string/*orig_path*/, std::string/*new_path*/> RootIORedirectMap;
 int apiLevel;
 
 /**
@@ -23,7 +24,7 @@ hook_template(void *handle, const char *symbol, void *new_func, void **old_func)
         LOGW("Error: unable to find the Symbol : %s.", symbol);
         return;
     }
-    inlineHookDirect((unsigned int) (addr), new_func, old_func);
+    inlineHookDirect((unsigned int) (addr), new_func, NULL);
 }
 
 static char **patchArgv(char * const *argv) {
@@ -35,11 +36,11 @@ static char **patchArgv(char * const *argv) {
     for(j=0; j<i; j++) {
         res[j] = argv[j];
     }
-    if(apiLevel >= 21) {
+    if(apiLevel >= ANDROID_L) {
         res[j] = "--compile-pic";
         j++;
     }
-    if(apiLevel >= 23) {
+    if(apiLevel >= ANDROID_M) {
         res[j] = "--debuggable";
         j++;
     }
@@ -63,7 +64,10 @@ static inline bool endWith(const std::string &str, const char &suffix) {
 static void add_pair(const char *_orig_path, const char *_new_path) {
     std::string origPath = std::string(_orig_path);
     std::string newPath = std::string(_new_path);
-    IORedirectMap.insert(std::pair<std::string, std::string>(origPath, newPath));
+
+    IORedirectMap.push_back(std::pair<const char*, const char*>(_orig_path, _new_path));
+//    IORedirectList.push_back(IOMapInfo(_orig_path, strlen(_orig_path), _new_path, strlen(_new_path)));
+    /*
     if (endWith(origPath, '/')) {
         RootIORedirectMap.insert(
                 std::pair<std::string, std::string>(
@@ -71,10 +75,41 @@ static void add_pair(const char *_orig_path, const char *_new_path) {
                         newPath.substr(0, newPath.length() - 1))
         );
     }
+     */
 }
 
 
-const char *match_redirected_path(const char *_path) {
+#define match_redirected_path(_path) ({\
+    size_t _pathLen = strlen(_path);\
+    if (_pathLen <= 1) {\
+        _path;\
+    }\
+    std::list<std::pair<std::string, std::string> >::iterator iterator;\
+    for (iterator = IORedirectMap.begin(); iterator != IORedirectMap.end(); iterator++) {\
+        const char *originPath = iterator->first.c_str();\
+        size_t originPathLen = iterator->first.size();\
+        const char *newPath = iterator->second.c_str();\
+        size_t newPathLen = iterator->second.size();\
+        if(!strncmp(_path, originPath, originPathLen)) {\
+            if (originPathLen == _pathLen) {\
+                newPath;\
+            } else {\
+                unsigned int resSize = (newPathLen+_pathLen-originPathLen+1);\
+                char *res = (char *)alloca(sizeof(char) * resSize);\
+                if(!res) {\
+                    LOGE("cannot alloca of size %d", resSize);\
+                    _path;\
+                }\
+                strcpy(res, newPath);\
+                strcpy(res + newPathLen, _path + originPathLen);\
+                res;\
+            }\
+        }\
+    }\
+    _path;\
+})
+
+/*
     std::string path(_path);
     if (path.length() <= 1) {
         return _path;
@@ -95,6 +130,7 @@ const char *match_redirected_path(const char *_path) {
     }
     return _path;
 }
+*/
 
 
 void IOUniformer::redirect(const char *orig_path, const char *new_path) {
@@ -112,10 +148,10 @@ void IOUniformer::readOnly(const char *_path) {
 }
 
 bool isReadOnlyPath(const char *_path) {
-    std::string path(_path);
+//    std::string path(_path);
     std::list<std::string>::iterator it;
     for (it = ReadOnlyPathMap.begin(); it != ReadOnlyPathMap.end(); ++it) {
-        if (startWith(path, *it)) {
+        if (!strncmp(_path, it->c_str(), it->size())) {
             return true;
         }
     }
@@ -124,6 +160,7 @@ bool isReadOnlyPath(const char *_path) {
 
 
 const char *IOUniformer::restore(const char *_path) {
+
     if (_path == NULL) {
         return NULL;
     }
@@ -131,7 +168,8 @@ const char *IOUniformer::restore(const char *_path) {
     if (path.length() <= 1) {
         return _path;
     }
-    std::map<std::string, std::string>::iterator iterator;
+    std::list<std::pair<std::string, std::string> >::iterator iterator;
+    /*
     iterator = RootIORedirectMap.find(path);
     if (iterator != RootIORedirectMap.end()) {
         return strdup(iterator->second.c_str());
@@ -143,7 +181,7 @@ const char *IOUniformer::restore(const char *_path) {
             return strdup(origin.c_str());
         }
     }
-
+     */
     for (iterator = IORedirectMap.begin(); iterator != IORedirectMap.end(); iterator++) {
         const std::string &prefix = iterator->first;
         const std::string &new_prefix = iterator->second;
@@ -527,17 +565,20 @@ HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp
      */
     char **newArgv;
     if (!strcmp(pathname, "/system/bin/dex2oat")) {
+        /*
         for (int i = 0; envp[i] != NULL; ++i) {
             if (!strncmp(envp[i], "LD_PRELOAD=", 11)) {
                 const_cast<char **>(envp)[i] = getenv("LD_PRELOAD");
             }
         }
+         */
         newArgv = patchArgv(argv);
     }
     else {
         newArgv = (char **)argv;
     }
 
+#ifdef DEBUG
     LOGD("execve: %s, LD_PRELOAD: %s.", pathname, getenv("LD_PRELOAD"));
     for (int i = 0; argv[i] != NULL; ++i) {
         LOGD("argv[%i] : %s", i, newArgv[i]);
@@ -545,6 +586,8 @@ HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp
     for (int i = 0; envp[i] != NULL; ++i) {
         LOGD("envp[%i] : %s", i, envp[i]);
     }
+#endif
+
     const char *redirect_path = match_redirected_path(pathname);
     int ret = syscall(__NR_execve, redirect_path, newArgv, envp);
     FREE(newArgv, argv);

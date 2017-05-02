@@ -22,23 +22,28 @@ void Java_nativeStartUniformer(JNIEnv *env, jclass jclazz, jint apiLevel, jint p
 void Java_nativeReadOnly(JNIEnv *env, jclass jclazz, jstring _path) {
     const char *path = env->GetStringUTFChars(_path, NULL);
     IOUniformer::readOnly(path);
+    env->ReleaseStringUTFChars(_path, path);
 }
 
 void Java_nativeRedirect(JNIEnv *env, jclass jclazz, jstring orgPath, jstring newPath) {
     const char *org_path = env->GetStringUTFChars(orgPath, NULL);
     const char *new_path = env->GetStringUTFChars(newPath, NULL);
     IOUniformer::redirect(org_path, new_path);
+    env->ReleaseStringUTFChars(orgPath, org_path);
+    env->ReleaseStringUTFChars(newPath, new_path);
 }
 
 jstring Java_nativeQuery(JNIEnv *env, jclass jclazz, jstring orgPath) {
     const char *org_path = env->GetStringUTFChars(orgPath, NULL);
     const char *redirected_path = IOUniformer::query(org_path);
+    env->ReleaseStringUTFChars(orgPath, org_path);
     return env->NewStringUTF(redirected_path);
 }
 
 jstring Java_nativeRestore(JNIEnv *env, jclass jclazz, jstring redirectedPath) {
     const char *redirected_path = env->GetStringUTFChars(redirectedPath, NULL);
     const char *org_path = IOUniformer::restore(redirected_path);
+    env->ReleaseStringUTFChars(redirectedPath, redirected_path);
     return env->NewStringUTF(org_path);
 }
 
