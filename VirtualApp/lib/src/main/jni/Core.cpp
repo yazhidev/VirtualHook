@@ -37,7 +37,9 @@ jstring Java_nativeQuery(JNIEnv *env, jclass jclazz, jstring orgPath) {
     const char *org_path = env->GetStringUTFChars(orgPath, NULL);
     const char *redirected_path = IOUniformer::query(org_path);
     env->ReleaseStringUTFChars(orgPath, org_path);
-    return env->NewStringUTF(redirected_path);
+    jstring res = env->NewStringUTF(redirected_path);
+    free((void *)redirected_path);
+    return res;
 }
 
 jstring Java_nativeRestore(JNIEnv *env, jclass jclazz, jstring redirectedPath) {
