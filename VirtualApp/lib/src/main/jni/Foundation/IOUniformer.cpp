@@ -49,17 +49,18 @@ static char **patchArgv(char * const *argv) {
 }
 
 
-void onSoLoaded(const char *name, void *handle);
+//void onSoLoaded(const char *name, void *handle);
 
 
 static inline bool startWith(const std::string &str, const std::string &prefix) {
     return str.compare(0, prefix.length(), prefix) == 0;
 }
 
-
+/*
 static inline bool endWith(const std::string &str, const char &suffix) {
     return *(str.end() - 1) == suffix;
 }
+*/
 
 static void add_pair(const char *_orig_path, const char *_new_path) {
     std::string origPath = std::string(_orig_path);

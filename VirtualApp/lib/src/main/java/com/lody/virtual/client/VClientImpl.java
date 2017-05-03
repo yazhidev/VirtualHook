@@ -39,6 +39,7 @@ import com.lody.virtual.client.ipc.VPackageManager;
 import com.lody.virtual.client.ipc.VirtualStorageManager;
 import com.lody.virtual.client.stub.StubManifest;
 import com.lody.virtual.helper.compat.BuildCompat;
+import com.lody.virtual.helper.compat.NativeLibraryHelperCompat;
 import com.lody.virtual.helper.compat.StorageManagerCompat;
 import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.os.VEnvironment;
@@ -71,6 +72,7 @@ import mirror.com.android.internal.content.ReferrerIntent;
 import mirror.dalvik.system.VMRuntime;
 import mirror.java.lang.ThreadGroupN;
 
+import static com.lody.virtual.os.VEnvironment.ensureCreated;
 import static com.lody.virtual.os.VUserHandle.getUserId;
 
 /**
@@ -322,8 +324,16 @@ public final class VClientImpl extends IVClient.Stub {
 
         HookMain hookMain = new HookMain();
         ClassLoader appClassLoader = mInitialApplication.getClassLoader();
-        DexClassLoader dexClassLoader = new DexClassLoader("/sdcard/io.virtualhook/patch.apk",
-                VEnvironment.getDalvikCacheDirectory().getAbsolutePath(), null, appClassLoader);
+        String patchApkPath = "/sdcard/io.virtualhook/patch.apk";
+        File libDir = ensureCreated(new File(
+                VEnvironment.getDataUserPackageDirectory(VUserHandle.myUserId(), "patch"), "lib"));
+
+        NativeLibraryHelperCompat.copyNativeBinaries(new File(patchApkPath), libDir);
+
+        DexClassLoader dexClassLoader = new DexClassLoader(patchApkPath,
+                VEnvironment.getDalvikCacheDirectory().getAbsolutePath(),
+                libDir.getAbsolutePath(),
+                appClassLoader);
         hookMain.doHookDefault(dexClassLoader, appClassLoader);
     }
 

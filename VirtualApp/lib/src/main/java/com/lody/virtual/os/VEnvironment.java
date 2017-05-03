@@ -51,7 +51,7 @@ public class VEnvironment {
         return VirtualCore.get().getContext();
     }
 
-    private static File ensureCreated(File folder) {
+    public static File ensureCreated(File folder) {
         if (!folder.exists() && !folder.mkdirs()) {
             VLog.w(TAG, "Unable to create the directory: %s.", folder.getPath());
         }
