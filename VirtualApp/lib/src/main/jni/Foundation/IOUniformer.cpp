@@ -36,7 +36,7 @@ static char **patchArgv(char * const *argv) {
     for(j=0; j<i; j++) {
         res[j] = argv[j];
     }
-    if(apiLevel >= ANDROID_L) {
+    if(apiLevel > ANDROID_L) {
         res[j] = "--compile-pic";
         j++;
     }
