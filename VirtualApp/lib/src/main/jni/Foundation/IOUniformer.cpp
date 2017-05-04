@@ -66,7 +66,7 @@ static void add_pair(const char *_orig_path, const char *_new_path) {
     std::string origPath = std::string(_orig_path);
     std::string newPath = std::string(_new_path);
 
-    IORedirectMap.push_back(std::pair<const char*, const char*>(_orig_path, _new_path));
+    IORedirectMap.push_back(std::pair<std::string, std::string>(origPath, newPath));
 //    IORedirectList.push_back(IOMapInfo(_orig_path, strlen(_orig_path), _new_path, strlen(_new_path)));
     /*
     if (endWith(origPath, '/')) {
@@ -81,29 +81,30 @@ static void add_pair(const char *_orig_path, const char *_new_path) {
 
 // define as macro since alloca is used
 #define match_redirected_path(_path) ({\
+    const char *res = _path;\
     size_t _pathLen = strlen(_path);\
-    if (_pathLen <= 1) {\
-        _path;\
-    }\
-    std::list<std::pair<std::string, std::string> >::iterator iterator;\
-    for (iterator = IORedirectMap.begin(); iterator != IORedirectMap.end(); iterator++) {\
-        const char *originPath = iterator->first.c_str();\
-        size_t originPathLen = iterator->first.size();\
-        const char *newPath = iterator->second.c_str();\
-        size_t newPathLen = iterator->second.size();\
-        if(!strncmp(_path, originPath, originPathLen)) {\
-            if (originPathLen == _pathLen) {\
-                newPath;\
-            } else {\
-                unsigned int resSize = (newPathLen+_pathLen-originPathLen+1);\
-                char *res = (char *)alloca(sizeof(char) * resSize);\
-                strcpy(res, newPath);\
-                strcpy(res + newPathLen, _path + originPathLen);\
-                res;\
+    if(_pathLen > 1) {\
+        std::list<std::pair<std::string, std::string> >::iterator iterator;\
+        for (iterator = IORedirectMap.begin(); iterator != IORedirectMap.end(); iterator++) {\
+            const char *originPath = iterator->first.c_str();\
+            size_t originPathLen = iterator->first.size();\
+            const char *newPath = iterator->second.c_str();\
+            size_t newPathLen = iterator->second.size();\
+            if(!strncmp(_path, originPath, originPathLen)) {\
+                if (originPathLen == _pathLen) {\
+                    res = newPath;\
+                    break;\
+                } else {\
+                    unsigned int resSize = (newPathLen+_pathLen-originPathLen+1);\
+                    res = (char *)alloca(sizeof(char) * resSize);\
+                    strcpy((char *)res, newPath);\
+                    strcpy((char *)res + newPathLen, _path + originPathLen);\
+                    break;\
+                }\
             }\
         }\
     }\
-    _path;\
+    res;\
 })
 
 /*
@@ -528,6 +529,7 @@ HOOK_DEF(int, __getcwd, char *buf, size_t size) {
 // int __openat(int fd, const char *pathname, int flags, int mode);
 HOOK_DEF(int, __openat, int fd, const char *pathname, int flags, int mode) {
     const char *redirect_path = match_redirected_path(pathname);
+//    LOGE("opening file %s, redirected to %s", pathname, redirect_path);
     int ret = syscall(__NR_openat, fd, redirect_path, flags, mode);
     return ret;
 }
