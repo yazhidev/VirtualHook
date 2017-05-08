@@ -210,11 +210,11 @@ public class VAppManagerService extends IAppManager.Stub {
                 return InstallResult.makeFailure("Unable to copy the package file.");
             }
             packageFile = privatePackageFile;
+            chmodPackageDictionary(packageFile);
         }
         if (existOne != null) {
             PackageCacheManager.remove(pkg.packageName);
         }
-        chmodPackageDictionary(packageFile);
         PackageSetting ps;
         if (existSetting != null) {
             ps = existSetting;
