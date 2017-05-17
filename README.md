@@ -32,6 +32,7 @@ Please refer to [demoHookPlugin](https://github.com/rk700/VirtualHook/tree/maste
 ## Example Hook Plugins
 
 - [CertUnpinning](https://github.com/rk700/CertUnpinning): HTTPS certificate unpinning.
+- [ChangePhoneInfo](https://github.com/rk700/ChangePhoneInfo): Change device information.
 
 ## License
 
