@@ -29,6 +29,18 @@ After building the APKs, push the `demoHookPlugin` APK to device at `/sdcard/io.
 
 Please refer to [demoHookPlugin](https://github.com/rk700/VirtualHook/tree/master/VirtualApp/demoHookPlugin) for more details.
 
+## Hooking Native Methods
+
+VirtualApp comes with native method hooking ability in the first place, which is done with the following function:
+
+```cpp
+namespace Cydia{
+    void MSHookFunction(void *symbol, void *replace, void **result);
+}
+```
+
+To utilize that, you can use `dlsym()` to find the symbol and then hook your targets. Here's a [demo](https://github.com/rk700/ChangePhoneInfo/blob/master/app/src/main/jni/hookprop.c) which hooks `__system_property_get`.
+
 ## Example Hook Plugins
 
 - [CertUnpinning](https://github.com/rk700/CertUnpinning): HTTPS certificate unpinning.
