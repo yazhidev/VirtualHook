@@ -12,12 +12,7 @@ static std::list<std::pair<std::string, std::string> > IORedirectMap;
 //static std::map<std::string/*orig_path*/, std::string/*new_path*/> RootIORedirectMap;
 int apiLevel;
 
-/**
- *
- * NOTICE:
- *   We use MSHook to hook symbol on x86 & X64.
- *   But on ARM, we use GodinHook to instead of it.
- */
+
 static inline void
 hook_template(void *handle, const char *symbol, void *new_func, void **old_func) {
     void *addr = dlsym(handle, symbol);
