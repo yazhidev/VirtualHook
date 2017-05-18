@@ -11,14 +11,12 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/MSHook
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/GodinHook
 
 ARCH_FILES := \
-    MSHook/MSHook.cpp \
     MSHook/x86_64.cpp \
     MSHook/ARM.cpp \
     MSHook/Debug.cpp \
     MSHook/Hooker.cpp \
     MSHook/PosixMemory.cpp \
     MSHook/Thumb.cpp \
-    MSHook/util.cpp \
     MSHook/x86.cpp
 
 

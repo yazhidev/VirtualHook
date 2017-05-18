@@ -72,11 +72,11 @@ extern JavaVM *gVm;
 extern jclass gClass;
 
 
-void mark() {
+static void mark() {
     // Do nothing
 };
 
-jint getCallingUid(JNIEnv *env, jclass jclazz) {
+static jint getCallingUid(JNIEnv *env, jclass jclazz) {
     jint uid;
     if (gOffset.isArt) {
         uid = gOffset.orig_getCallingUid(env, jclazz);
@@ -94,7 +94,7 @@ static JNINativeMethod gMarkMethods[] = {
         NATIVE_METHOD((void *) mark, "nativeMark", "()V"),
 };
 
-JNINativeMethod gUidMethods[] = {
+static JNINativeMethod gUidMethods[] = {
         NATIVE_METHOD((void *) getCallingUid, "getCallingUid", "()I"),
 };
 
@@ -258,7 +258,7 @@ new_bridge_cameraNativeSetupFunc(const void **args, void *pResult, const void *m
 }
 
 
-void measureNativeOffset(JNIEnv *env, bool isArt) {
+static void measureNativeOffset(JNIEnv *env, bool isArt) {
 
     jmethodID mtd_nativeHook = env->GetStaticMethodID(gClass, gMarkMethods[0].name,
                                                       gMarkMethods[0].signature);
@@ -291,7 +291,7 @@ void measureNativeOffset(JNIEnv *env, bool isArt) {
 }
 
 
-inline void replaceGetCallingUid(JNIEnv *env, jboolean isArt) {
+static void replaceGetCallingUid(JNIEnv *env, jboolean isArt) {
 
 
     if (isArt) {
@@ -307,7 +307,7 @@ inline void replaceGetCallingUid(JNIEnv *env, jboolean isArt) {
 
 }
 
-inline void
+static void
 replaceOpenDexFileMethod(JNIEnv *env, jobject javaMethod, jboolean isArt, int apiLevel) {
 
     size_t mtd_openDexNative = (size_t) env->FromReflectedMethod(javaMethod);
@@ -330,7 +330,7 @@ replaceOpenDexFileMethod(JNIEnv *env, jobject javaMethod, jboolean isArt, int ap
 }
 
 
-inline void
+static void
 replaceCameraNativeSetupMethod(JNIEnv *env, jobject javaMethod, jboolean isArt, int apiLevel) {
 
     if (!javaMethod) {
@@ -367,7 +367,7 @@ replaceCameraNativeSetupMethod(JNIEnv *env, jobject javaMethod, jboolean isArt, 
 }
 
 
-void
+static void
 replaceAudioRecordNativeCheckPermission(JNIEnv *env, jobject javaMethod, jboolean isArt, int api) {
     if (!javaMethod || !isArt) {
         return;
@@ -376,6 +376,19 @@ replaceAudioRecordNativeCheckPermission(JNIEnv *env, jobject javaMethod, jboolea
     void **funPtr = (void **) (reinterpret_cast<size_t>(methodStruct) + gOffset.nativeOffset);
     gOffset.orig_native_audioRecordNativeCheckPermission = (Native_audioRecordNativeCheckPermission) (*funPtr);
     *funPtr = (void *) new_native_audioRecordNativeCheckPermission;
+}
+
+static void *getVMHandle() {
+    char soName[15] = {0};
+    __system_property_get("persist.sys.dalvik.vm.lib.2", soName);
+    if (soName[0] == '\x0') {
+        __system_property_get("persist.sys.dalvik.vm.lib", soName);
+    }
+    void *soInfo = dlopen(soName, 0);
+    if (!soInfo) {
+        soInfo = RTLD_DEFAULT;
+    }
+    return soInfo;
 }
 
 
@@ -438,17 +451,4 @@ void patchAndroidVM(jobjectArray javaMethods, jstring packageName, jboolean isAr
     replaceAudioRecordNativeCheckPermission(env, env->GetObjectArrayElement(javaMethods,
                                                                             VIVO_AUDIORECORD_NATIVE_CHECK_PERMISSION),
                                             isArt, apiLevel);
-}
-
-void *getVMHandle() {
-    char soName[15] = {0};
-    __system_property_get("persist.sys.dalvik.vm.lib.2", soName);
-    if (soName[0] == '\x0') {
-        __system_property_get("persist.sys.dalvik.vm.lib", soName);
-    }
-    void *soInfo = dlopen(soName, 0);
-    if (!soInfo) {
-        soInfo = RTLD_DEFAULT;
-    }
-    return soInfo;
 }

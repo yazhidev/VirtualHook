@@ -1,7 +1,8 @@
 //
 // VirtualApp Native Project
 //
-#include <util.h>
+//#include <util.h>
+#include <MSHook/Hooker.h>
 #include "IOUniformer.h"
 //#include "native_hook.h"
 
@@ -24,15 +25,15 @@ hook_template(void *handle, const char *symbol, void *new_func, void **old_func)
         LOGW("Error: unable to find the Symbol : %s.", symbol);
         return;
     }
-    inlineHookDirect((unsigned int) (addr), new_func, NULL);
+    Cydia::MSHookFunction(addr, new_func, NULL);
 }
 
-static char **patchArgv(char * const *argv) {
+static const char **patchArgv(char * const *argv) {
     int i=0,j;
     while(argv[i] != NULL) {
         i++;
     }
-    char **res = (char **)malloc((i+3)*sizeof(char *));
+    const char **res = (const char **)malloc((i+3)*sizeof(char *));
     for(j=0; j<i; j++) {
         res[j] = argv[j];
     }
@@ -145,7 +146,7 @@ void IOUniformer::readOnly(const char *_path) {
     ReadOnlyPathMap.push_back(path);
 }
 
-bool isReadOnlyPath(const char *_path) {
+static bool isReadOnlyPath(const char *_path) {
 //    std::string path(_path);
     std::list<std::string>::iterator it;
     for (it = ReadOnlyPathMap.begin(); it != ReadOnlyPathMap.end(); ++it) {
@@ -565,7 +566,7 @@ HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp
      * Fix the LD_PRELOAD.
      * Now we just fill it.
      */
-    char **newArgv;
+    const char **newArgv;
     if (!strcmp(pathname, "/system/bin/dex2oat")) {
         /*
         for (int i = 0; envp[i] != NULL; ++i) {
@@ -577,7 +578,7 @@ HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp
         newArgv = patchArgv(argv);
     }
     else {
-        newArgv = (char **)argv;
+        newArgv = (const char **)argv;
     }
 
 #ifdef DEBUG
@@ -645,6 +646,9 @@ HOOK_DEF(int, kill, pid_t pid, int sig) {
     return ret;
 }
 
+
+
+
 __END_DECLS
 // end IO DEF
 
@@ -684,6 +688,7 @@ void hook_dlopen(int api_level) {
 
 void IOUniformer::startUniformer(int api_level, int preview_api_level) {
     apiLevel = api_level;
+
     HOOK_SYMBOL(RTLD_DEFAULT, chroot);
     HOOK_SYMBOL(RTLD_DEFAULT, kill);
     HOOK_SYMBOL(RTLD_DEFAULT, chdir);
@@ -704,5 +709,6 @@ void IOUniformer::startUniformer(int api_level, int preview_api_level) {
     HOOK_SYMBOL(RTLD_DEFAULT, renameat);
     HOOK_SYMBOL(RTLD_DEFAULT, fchownat);
     HOOK_SYMBOL(RTLD_DEFAULT, mknodat);
+
 //    hook_dlopen(api_level);
 }

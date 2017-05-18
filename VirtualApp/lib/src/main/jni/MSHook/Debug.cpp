@@ -35,7 +35,7 @@ static char _MSHexChar(uint8_t value) {
 #define HexDepth_ 4
 
 
-void MSLogHexExInner(const void *vdata, size_t size, size_t stride, const char *mark) {
+static void MSLogHexExInner(const void *vdata, size_t size, size_t stride, const char *mark) {
     const uint8_t *data((const uint8_t *) vdata);
 
     size_t i(0), j;

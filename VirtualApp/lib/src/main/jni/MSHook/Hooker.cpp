@@ -25,6 +25,7 @@ void Cydia::MSHookFunction(void *symbol, void *replace, void **result) {
 #endif
 }
 
+/*
 void Cydia::MSHookFunction(const char *soname, const char *symbol, void *replace_func,
                            void **old_func) {
     void *addr = NULL;
@@ -34,3 +35,4 @@ void Cydia::MSHookFunction(const char *soname, const char *symbol, void *replace
     }
     Cydia::MSHookFunction(addr, replace_func, old_func);
 }
+ */

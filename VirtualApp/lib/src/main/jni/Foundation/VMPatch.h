@@ -20,7 +20,7 @@ enum METHODS {
 
 void patchAndroidVM(jobjectArray javaMethods, jstring packageName, jboolean isArt, jint apiLevel, jint cameraMethodType);
 
-void *getVMHandle();
+//void *getVMHandle();
 
 
 #endif //NDK_HOOK_NATIVE_H

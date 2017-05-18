@@ -8,24 +8,24 @@ JavaVM *gVm;
 jclass gClass;
 
 
-void Java_nativeHookNative(JNIEnv *env, jclass jclazz, jobjectArray javaMethods,
+static void Java_nativeHookNative(JNIEnv *env, jclass jclazz, jobjectArray javaMethods,
                            jstring packageName,
                            jboolean isArt, jint apiLevel, jint cameraMethodType) {
     patchAndroidVM(javaMethods, packageName, isArt, apiLevel, cameraMethodType);
 }
 
 
-void Java_nativeStartUniformer(JNIEnv *env, jclass jclazz, jint apiLevel, jint previewApiLevel) {
+static void Java_nativeStartUniformer(JNIEnv *env, jclass jclazz, jint apiLevel, jint previewApiLevel) {
     IOUniformer::startUniformer(apiLevel, previewApiLevel);
 }
 
-void Java_nativeReadOnly(JNIEnv *env, jclass jclazz, jstring _path) {
+static void Java_nativeReadOnly(JNIEnv *env, jclass jclazz, jstring _path) {
     const char *path = env->GetStringUTFChars(_path, NULL);
     IOUniformer::readOnly(path);
     env->ReleaseStringUTFChars(_path, path);
 }
 
-void Java_nativeRedirect(JNIEnv *env, jclass jclazz, jstring orgPath, jstring newPath) {
+static void Java_nativeRedirect(JNIEnv *env, jclass jclazz, jstring orgPath, jstring newPath) {
     const char *org_path = env->GetStringUTFChars(orgPath, NULL);
     const char *new_path = env->GetStringUTFChars(newPath, NULL);
     IOUniformer::redirect(org_path, new_path);
@@ -33,7 +33,7 @@ void Java_nativeRedirect(JNIEnv *env, jclass jclazz, jstring orgPath, jstring ne
     env->ReleaseStringUTFChars(newPath, new_path);
 }
 
-jstring Java_nativeQuery(JNIEnv *env, jclass jclazz, jstring orgPath) {
+static jstring Java_nativeQuery(JNIEnv *env, jclass jclazz, jstring orgPath) {
     const char *org_path = env->GetStringUTFChars(orgPath, NULL);
     const char *redirected_path = IOUniformer::query(org_path);
     env->ReleaseStringUTFChars(orgPath, org_path);
@@ -42,7 +42,7 @@ jstring Java_nativeQuery(JNIEnv *env, jclass jclazz, jstring orgPath) {
     return res;
 }
 
-jstring Java_nativeRestore(JNIEnv *env, jclass jclazz, jstring redirectedPath) {
+static jstring Java_nativeRestore(JNIEnv *env, jclass jclazz, jstring redirectedPath) {
     const char *redirected_path = env->GetStringUTFChars(redirectedPath, NULL);
     const char *org_path = IOUniformer::restore(redirected_path);
     env->ReleaseStringUTFChars(redirectedPath, redirected_path);
