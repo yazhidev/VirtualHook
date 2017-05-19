@@ -48,86 +48,18 @@ void x86::SubstrateHookFunctionx86(SubstrateProcessRef process, void *symbol, vo
     memcpy(backup, area, used);
 
     if (result != NULL) {
-
-    if (backup[0] == 0xe9) {
-        *result = reinterpret_cast<void *>(source + 5 + *reinterpret_cast<uint32_t *>(backup + 1));
-        return;
-    }
-
-    if (!ia32 && backup[0] == 0xff && backup[1] == 0x25) {
-        *result = *reinterpret_cast<void **>(source + 6 + *reinterpret_cast<uint32_t *>(backup + 2));
-        return;
-    }
-
-    size_t length(used + MSSizeOfJump(source + used));
-
-    for (size_t offset(0), width; offset != used; offset += width) {
-        hde64s decode;
-        hde64_disasm(backup + offset, &decode);
-        width = decode.len;
-        //_assert(width != 0 && offset + width <= used);
-
-#ifdef __LP64__
-        if ((decode.modrm & 0xc7) == 0x05) {
-            if (decode.opcode == 0x8b) {
-                void *destiny(area + offset + width + int32_t(decode.disp.disp32));
-                uint8_t reg(decode.rex_r << 3 | decode.modrm_reg);
-                length -= decode.len;
-                length += MSSizeOfPushPointer(destiny);
-                length += MSSizeOfPop(reg);
-                length += MSSizeOfMove64();
-            } else {
-                MSLog(MSLogLevelError, "MS:Error: Unknown RIP-Relative (%.2x %.2x)", decode.opcode, decode.opcode2);
-                continue;
-            }
-        } else
-#endif
-
-        if (backup[offset] == 0xe8) {
-            int32_t relative(*reinterpret_cast<int32_t *>(backup + offset + 1));
-            void *destiny(area + offset + decode.len + relative);
-
-            if (relative == 0) {
-                length -= decode.len;
-                length += MSSizeOfPushPointer(destiny);
-            } else {
-                length += MSSizeOfSkip();
-                length += MSSizeOfJump(destiny);
-            }
-        } else if (backup[offset] == 0xeb) {
-            length -= decode.len;
-            length += MSSizeOfJump(area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
-        } else if (backup[offset] == 0xe9) {
-            length -= decode.len;
-            length += MSSizeOfJump(area + offset + decode.len + *reinterpret_cast<int32_t *>(backup + offset + 1));
-        } else if (
-            backup[offset] == 0xe3 ||
-            (backup[offset] & 0xf0) == 0x70
-            // XXX: opcode2 & 0xf0 is 0x80?
-        ) {
-            length += decode.len;
-            length += MSSizeOfJump(area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
+        //jmp near
+        if (backup[0] == 0xe9) {
+            *result = reinterpret_cast<void *>(source + 5 + *reinterpret_cast<uint32_t *>(backup + 1));
+            return;
         }
-    }
 
-    uint8_t *buffer(reinterpret_cast<uint8_t *>(mmap(
-        NULL, length, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0
-    )));
+        if (!ia32 && backup[0] == 0xff && backup[1] == 0x25) {
+            *result = *reinterpret_cast<void **>(source + 6 + *reinterpret_cast<uint32_t *>(backup + 2));
+            return;
+        }
 
-    if (buffer == MAP_FAILED) {
-        MSLog(MSLogLevelError, "MS:Error:mmap() = %d", errno);
-        *result = NULL;
-        return;
-    }
-
-    if (false) fail: {
-        munmap(buffer, length);
-        *result = NULL;
-        return;
-    }
-
-    {
-        uint8_t *current(buffer);
+        size_t length(used + MSSizeOfJump(source + used));
 
         for (size_t offset(0), width; offset != used; offset += width) {
             hde64s decode;
@@ -140,65 +72,170 @@ void x86::SubstrateHookFunctionx86(SubstrateProcessRef process, void *symbol, vo
                 if (decode.opcode == 0x8b) {
                     void *destiny(area + offset + width + int32_t(decode.disp.disp32));
                     uint8_t reg(decode.rex_r << 3 | decode.modrm_reg);
-                    MSPushPointer(current, destiny);
-                    MSWritePop(current, reg);
-                    MSWriteMove64(current, reg, reg);
+                    length -= decode.len;
+                    length += MSSizeOfPushPointer(destiny);
+                    length += MSSizeOfPop(reg);
+                    length += MSSizeOfMove64();
                 } else {
                     MSLog(MSLogLevelError, "MS:Error: Unknown RIP-Relative (%.2x %.2x)", decode.opcode, decode.opcode2);
-                    goto copy;
+                    continue;
                 }
             } else
 #endif
 
+            //call near
             if (backup[offset] == 0xe8) {
                 int32_t relative(*reinterpret_cast<int32_t *>(backup + offset + 1));
-                if (relative == 0)
-                    MSPushPointer(current, area + offset + decode.len);
-                else {
-                    MSWrite<uint8_t>(current, 0xe8);
-                    MSWrite<int32_t>(current, MSSizeOfSkip());
-                    void *destiny(area + offset + decode.len + relative);
-                    MSWriteSkip(current, MSSizeOfJump(destiny, current + MSSizeOfSkip()));
-                    MSWriteJump(current, destiny);
+                void *destiny(area + offset + decode.len + relative);
+
+                if (relative == 0) {
+                    length -= decode.len;
+                    length += MSSizeOfPushPointer(destiny);
+                } else {
+                    length += MSSizeOfSkip();
+                    length += MSSizeOfJump(destiny);
+
+                    // check if calling get_pc_thunk_bx or get_pc_thunk_cx
+                    // get_pc_thunk_bx:  mov ebx, [esp+0]; ret
+                    // get_pc_thunk_cx:  mov ecx, [esp+0]; ret
+                    if(!memcmp(destiny, "\x8b\x1c\x24\xc3", 4) || !memcmp(destiny, "\x8b\x0c\x24\xc3", 4)) {
+                        if(MSDebug) {
+                            lprintf("hooking target calls get_pc_thunk");
+                        }
+                        length += MSSizeOfSub();
+                    }
                 }
-            } else if (backup[offset] == 0xeb)
-                MSWriteJump(current, area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
-            else if (backup[offset] == 0xe9)
-                MSWriteJump(current, area + offset + decode.len + *reinterpret_cast<int32_t *>(backup + offset + 1));
-            else if (
+
+            } else if (backup[offset] == 0xeb) { //jmp short
+                length -= decode.len;
+                length += MSSizeOfJump(area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
+            } else if (backup[offset] == 0xe9) { //jmp near
+                length -= decode.len;
+                length += MSSizeOfJump(area + offset + decode.len + *reinterpret_cast<int32_t *>(backup + offset + 1));
+            } else if (
                 backup[offset] == 0xe3 ||
                 (backup[offset] & 0xf0) == 0x70
+                // XXX: opcode2 & 0xf0 is 0x80?
             ) {
-                MSWrite<uint8_t>(current, backup[offset]);
-                MSWrite<uint8_t>(current, 2);
-                MSWrite<uint8_t>(current, 0xeb);
-                void *destiny(area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
-                MSWrite<uint8_t>(current, MSSizeOfJump(destiny, current + 1));
-                MSWriteJump(current, destiny);
-            } else
-#ifdef __LP64__
-                copy:
-#endif
-            {
-                MSWrite(current, backup + offset, width);
+                length += decode.len;
+                length += MSSizeOfJump(area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
             }
         }
 
-        MSWriteJump(current, area + used);
-    }
+        uint8_t *buffer(reinterpret_cast<uint8_t *>(mmap(
+            NULL, length, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0
+        )));
 
-    if (mprotect(buffer, length, PROT_READ | PROT_EXEC) == -1) {
-        MSLog(MSLogLevelError, "MS:Error:mprotect():%d", errno);
-        goto fail;
-    }
+        if (buffer == MAP_FAILED) {
+            MSLog(MSLogLevelError, "MS:Error:mmap() = %d", errno);
+            *result = NULL;
+            return;
+        }
 
-    *result = buffer;
+        if (false) fail: {
+            munmap(buffer, length);
+            *result = NULL;
+            return;
+        }
 
-    if (MSDebug) {
-        char name[16];
-        sprintf(name, "%p", *result);
-        MSLogHex(buffer, length, name);
-    }
+        {
+            uint8_t *current(buffer);
+
+            for (size_t offset(0), width; offset != used; offset += width) {
+                hde64s decode;
+                hde64_disasm(backup + offset, &decode);
+                width = decode.len;
+                //_assert(width != 0 && offset + width <= used);
+
+#ifdef __LP64__
+                if ((decode.modrm & 0xc7) == 0x05) {
+                    if (decode.opcode == 0x8b) {
+                        void *destiny(area + offset + width + int32_t(decode.disp.disp32));
+                        uint8_t reg(decode.rex_r << 3 | decode.modrm_reg);
+                        MSPushPointer(current, destiny);
+                        MSWritePop(current, reg);
+                        MSWriteMove64(current, reg, reg);
+                    } else {
+                        MSLog(MSLogLevelError, "MS:Error: Unknown RIP-Relative (%.2x %.2x)", decode.opcode, decode.opcode2);
+                        goto copy;
+                    }
+                } else
+#endif
+
+                if (backup[offset] == 0xe8) {
+                    int32_t relative(*reinterpret_cast<int32_t *>(backup + offset + 1));
+                    if (relative == 0)
+                        MSPushPointer(current, area + offset + decode.len);
+                    else {
+                        MSWrite<uint8_t>(current, 0xe8);
+                        MSWrite<int32_t>(current, MSSizeOfSkip());
+                        uint32_t sub = current - (area+offset+decode.len);
+                        if(MSDebug) {
+                            lprintf("sub is %p", sub);
+                        }
+                        void *destiny(area + offset + decode.len + relative);
+                        MSWriteSkip(current, MSSizeOfJump(destiny, current + MSSizeOfSkip()));
+                        MSWriteJump(current, destiny);
+
+                        //calling get_pc_thunk_bx
+                        if(!memcmp(destiny, "\x8b\x1c\x24\xc3", 4)) {
+                            if(MSDebug) {
+                                lprintf("calling get_pc_thunk_bx, adding sub ins");
+                            }
+                            MSWrite<uint8_t>(current, 0x81);
+                            MSWrite<uint8_t>(current, 0xeb);
+                            MSWrite<uint32_t>(current, sub);
+                        }
+                        //calling get_pc_thunk_cx
+                        else if(!memcmp(destiny, "\x8b\x0c\x24\xc3", 4)) {
+                            if(MSDebug) {
+                                lprintf("calling get_pc_thunk_cx, adding sub ins");
+                            }
+                            MSWrite<uint8_t>(current, 0x81);
+                            MSWrite<uint8_t>(current, 0xe9);
+                            MSWrite<uint32_t>(current, sub);
+                        }
+                    }
+
+
+                } else if (backup[offset] == 0xeb)
+                    MSWriteJump(current, area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
+                else if (backup[offset] == 0xe9)
+                    MSWriteJump(current, area + offset + decode.len + *reinterpret_cast<int32_t *>(backup + offset + 1));
+                else if (
+                    backup[offset] == 0xe3 ||
+                    (backup[offset] & 0xf0) == 0x70
+                ) {
+                    MSWrite<uint8_t>(current, backup[offset]);
+                    MSWrite<uint8_t>(current, 2);
+                    MSWrite<uint8_t>(current, 0xeb);
+                    void *destiny(area + offset + decode.len + *reinterpret_cast<int8_t *>(backup + offset + 1));
+                    MSWrite<uint8_t>(current, MSSizeOfJump(destiny, current + 1));
+                    MSWriteJump(current, destiny);
+                } else
+    #ifdef __LP64__
+                    copy:
+    #endif
+                {
+                    MSWrite(current, backup + offset, width);
+                }
+            }
+
+            MSWriteJump(current, area + used);
+        }
+
+        if (mprotect(buffer, length, PROT_READ | PROT_EXEC) == -1) {
+            MSLog(MSLogLevelError, "MS:Error:mprotect():%d", errno);
+            goto fail;
+        }
+
+        *result = buffer;
+
+        if (MSDebug) {
+            char name[16];
+            sprintf(name, "%p", *result);
+            MSLogHex(buffer, length, name);
+        }
 
     }
 

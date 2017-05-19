@@ -202,8 +202,12 @@ _disused static size_t MSSizeOfMove64() {
     return 3;
 }
 
+_disused static size_t MSSizeOfSub() {
+    return 6;
+}
+
 namespace x86{
-	extern "C" void SubstrateHookFunctionx86(SubstrateProcessRef process, void *symbol, void *replace, void **result);
+	void SubstrateHookFunctionx86(SubstrateProcessRef process, void *symbol, void *replace, void **result);
 }
 
 #endif /* X86_H_ */

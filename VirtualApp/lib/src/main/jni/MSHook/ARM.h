@@ -76,6 +76,6 @@ static inline bool A$pcrel$r(uint32_t ic) {
 }
 
 namespace ARM{
-	extern "C" void SubstrateHookFunctionARM(SubstrateProcessRef process, void *symbol, void *replace, void **result);
+	void SubstrateHookFunctionARM(SubstrateProcessRef process, void *symbol, void *replace, void **result);
 }
 #endif//SUBSTRATE_ARM_HPP

@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-extern "C" SubstrateMemoryRef SubstrateMemoryCreate(
+SubstrateMemoryRef SubstrateMemoryCreate(
 		SubstrateAllocatorRef allocator, SubstrateProcessRef process,
 		void *data, size_t size) {
 	if (allocator != NULL) {
@@ -55,7 +55,7 @@ extern "C" SubstrateMemoryRef SubstrateMemoryCreate(
 	return new SubstrateMemory(address, width);
 }
 
-extern "C" void SubstrateMemoryRelease(SubstrateMemoryRef memory) {
+void SubstrateMemoryRelease(SubstrateMemoryRef memory) {
 	if (mprotect(memory->address_, memory->width_,
 			PROT_READ | PROT_WRITE | PROT_EXEC) == -1)
 		MSLog(MSLogLevelError, "MS:Error:mprotect() = %d", errno);

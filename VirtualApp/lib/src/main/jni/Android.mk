@@ -11,14 +11,15 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/MSHook
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/GodinHook
 
 ARCH_FILES := \
-    MSHook/x86_64.cpp \
-    MSHook/ARM.cpp \
     MSHook/Debug.cpp \
     MSHook/Hooker.cpp \
-    MSHook/PosixMemory.cpp \
-    MSHook/Thumb.cpp \
-    MSHook/x86.cpp
+    MSHook/PosixMemory.cpp
 
+ifeq "$(TARGET_ARCH_ABI)" "x86"
+    ARCH_FILES += MSHook/x86.cpp MSHook/x86_64.cpp
+else
+    ARCH_FILES += MSHook/ARM.cpp MSHook/Thumb.cpp
+endif
 
 LOCAL_SRC_FILES := Core.cpp \
 				   Foundation/IOUniformer.cpp \

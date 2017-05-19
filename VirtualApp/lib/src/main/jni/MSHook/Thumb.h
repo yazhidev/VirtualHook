@@ -106,6 +106,6 @@ static size_t MSGetInstructionWidthARM(void *start) {
 
 namespace Thumb{
 	static size_t MSGetInstructionWidth(void *start);
-	extern "C" void SubstrateHookFunctionThumb(SubstrateProcessRef process, void *symbol, void *replace, void **result);
+	void SubstrateHookFunctionThumb(SubstrateProcessRef process, void *symbol, void *replace, void **result);
 }
 #endif /* THUMB_H_ */
