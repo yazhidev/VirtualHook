@@ -42,6 +42,7 @@ import com.lody.virtual.client.stub.StubManifest;
 import com.lody.virtual.helper.compat.BuildCompat;
 import com.lody.virtual.helper.compat.NativeLibraryHelperCompat;
 import com.lody.virtual.helper.compat.StorageManagerCompat;
+import com.lody.virtual.helper.utils.FileUtils;
 import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.os.VEnvironment;
 import com.lody.virtual.os.VUserHandle;
@@ -317,7 +318,18 @@ public final class VClientImpl extends IVClient.Stub {
         File libDir = ensureCreated(new File(
                 VEnvironment.getDataUserPackageDirectory(VUserHandle.myUserId(), "patch"), "lib"));
 
-        NativeLibraryHelperCompat.copyNativeBinaries(new File(patchApkPath), libDir);
+        try {
+            // copy native libraries from patch plugin
+            NativeLibraryHelperCompat.copyNativeBinaries(new File(patchApkPath), libDir);
+            // copy libva-native.so so that the symbol MSHookFunction() can be accessed in patch plugin after Android N
+            FileUtils.createSymlink(
+                    new File(VirtualCore.get().getContext().getApplicationInfo().dataDir,
+                            "lib/libva-native.so").getAbsolutePath()
+                    , new File(libDir, "libva-native.so").getAbsolutePath());
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
 
         DexClassLoader dexClassLoader = new DexClassLoader(patchApkPath,
                 VEnvironment.getDalvikCacheDirectory().getAbsolutePath(),
