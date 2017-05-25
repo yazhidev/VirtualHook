@@ -312,26 +312,42 @@ public final class VClientImpl extends IVClient.Stub {
         }
         VActivityManager.get().appDoneExecuting();
 
+        ClassLoader targetClassLoader = mInitialApplication.getClassLoader();
+
+        try {
+            File hookFolder = new File("/sdcard/io.virtualhook");
+            for(File hookFile : hookFolder.listFiles()) {
+                applyHookPlugin(hookFile, targetClassLoader);
+            }
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void applyHookPlugin(File patchApk, ClassLoader appClassLoader) {
         HookMain hookMain = new HookMain();
-        ClassLoader appClassLoader = mInitialApplication.getClassLoader();
-        String patchApkPath = "/sdcard/io.virtualhook/patch.apk";
-        File libDir = ensureCreated(new File(
-                VEnvironment.getDataUserPackageDirectory(VUserHandle.myUserId(), "patch"), "lib"));
+        File libDir = ensureCreated(
+            new File(VEnvironment.getDataUserPackageDirectory(VUserHandle.myUserId(), patchApk.getName()), "lib")
+        );
 
         try {
             // copy native libraries from patch plugin
-            NativeLibraryHelperCompat.copyNativeBinaries(new File(patchApkPath), libDir);
+            NativeLibraryHelperCompat.copyNativeBinaries(patchApk, libDir);
+            /*
             // copy libva-native.so so that the symbol MSHookFunction() can be accessed in patch plugin after Android N
             FileUtils.createSymlink(
                     new File(VirtualCore.get().getContext().getApplicationInfo().dataDir,
                             "lib/libva-native.so").getAbsolutePath()
                     , new File(libDir, "libva-native.so").getAbsolutePath());
+                    */
         }
         catch (Exception e) {
             e.printStackTrace();
         }
 
-        DexClassLoader dexClassLoader = new DexClassLoader(patchApkPath,
+        DexClassLoader dexClassLoader = new DexClassLoader(patchApk.getAbsolutePath(),
                 VEnvironment.getDalvikCacheDirectory().getAbsolutePath(),
                 libDir.getAbsolutePath(),
                 appClassLoader);

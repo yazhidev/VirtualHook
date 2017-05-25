@@ -25,7 +25,7 @@ Import and build the project in Android Studio(__with Instant Run disabled__). T
 - `YAHFA`. This is the YAHFA hook module.
 - `demoHookPlugin`. This is a demo hook plugin which compiles to an APK.
 
-After building the APKs, push the `demoHookPlugin` APK to device at `/sdcard/io.virtualhook/patch.apk` and run the main application. The hook plugin would be applied to all applications running in VirtualApp.
+After building the APKs, push the `demoHookPlugin` APK to device in folder `/sdcard/io.virtualhook/` and run the main application. All plugin APKs in `/sdcard/io.virtualhook` would be applied to applications running in VirtualHook.
 
 Please refer to [demoHookPlugin](https://github.com/rk700/VirtualHook/tree/master/VirtualApp/demoHookPlugin) for more details.
 
