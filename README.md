@@ -45,6 +45,7 @@ To utilize that, you can use `dlsym()` to find the symbol and then hook your tar
 
 - [CertUnpinning](https://github.com/rk700/CertUnpinning): HTTPS certificate unpinning.
 - [ChangePhoneInfo](https://github.com/rk700/ChangePhoneInfo): Change device information.
+- [VirtualHosts](https://github.com/rk700/VirtualHosts): Custom hostname resolution.
 
 ## License
 
