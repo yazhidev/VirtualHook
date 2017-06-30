@@ -40,6 +40,7 @@ public class HookMain {
         try {
             Log.i(TAG, "Start hooking with item "+hookItemName);
             Class<?> hookItem = Class.forName(hookItemName, true, patchClassLoader);
+
             String className = (String)hookItem.getField("className").get(null);
             String methodName = (String)hookItem.getField("methodName").get(null);
             String methodSig = (String)hookItem.getField("methodSig").get(null);

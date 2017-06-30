@@ -335,13 +335,11 @@ public final class VClientImpl extends IVClient.Stub {
         try {
             // copy native libraries from patch plugin
             NativeLibraryHelperCompat.copyNativeBinaries(patchApk, libDir);
-            /*
             // copy libva-native.so so that the symbol MSHookFunction() can be accessed in patch plugin after Android N
             FileUtils.createSymlink(
                     new File(VirtualCore.get().getContext().getApplicationInfo().dataDir,
                             "lib/libva-native.so").getAbsolutePath()
                     , new File(libDir, "libva-native.so").getAbsolutePath());
-                    */
         }
         catch (Exception e) {
             e.printStackTrace();
