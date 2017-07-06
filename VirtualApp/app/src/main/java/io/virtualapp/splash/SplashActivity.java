@@ -3,6 +3,7 @@ package io.virtualapp.splash;
 import android.os.Bundle;
 import android.view.WindowManager;
 
+import com.lody.virtual.GmsSupport;
 import com.lody.virtual.client.core.VirtualCore;
 
 import io.virtualhook.R;
@@ -23,13 +24,14 @@ public class SplashActivity extends VActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+        showBanner();
         VUiKit.defer().when(() -> {
             if (!Once.beenDone("collect_flurry")) {
                 FlurryROMCollector.startCollect();
                 Once.markDone("collect_flurry");
             }
             long time = System.currentTimeMillis();
-            VirtualCore.get().waitForEngine();
+            doActionInThread();
             time = System.currentTimeMillis() - time;
             long delta = 1000L - time;
             if (delta > 0) {
@@ -41,4 +43,13 @@ public class SplashActivity extends VActivity {
         });
     }
 
+    private void showBanner() {
+
+    }
+
+    private void doActionInThread() {
+        if (!VirtualCore.get().isEngineLaunched()) {
+            VirtualCore.get().waitForEngine();
+        }
+    }
 }
