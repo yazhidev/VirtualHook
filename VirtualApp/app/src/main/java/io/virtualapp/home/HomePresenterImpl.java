@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 
 import com.lody.virtual.GmsSupport;
 import com.lody.virtual.client.core.VirtualCore;
+import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.os.VUserInfo;
 import com.lody.virtual.os.VUserManager;
 import com.lody.virtual.remote.InstallResult;
@@ -127,7 +128,7 @@ class HomePresenterImpl implements HomeContract.HomePresenter {
                 PackageAppData data = addResult.appData;
                 data.isLoading = true;
                 mView.addAppToLauncher(data);
-                handleOptApp(data, info.packageName, false);
+                handleOptApp(data, info.packageName, true);
             } else {
                 MultiplePackageAppData data = new MultiplePackageAppData(addResult.appData, addResult.userId);
                 data.isLoading = true;
