@@ -127,7 +127,7 @@ class HomePresenterImpl implements HomeContract.HomePresenter {
                 PackageAppData data = addResult.appData;
                 data.isLoading = true;
                 mView.addAppToLauncher(data);
-                handleOptApp(data, info.packageName, true);
+                handleOptApp(data, info.packageName, false);
             } else {
                 MultiplePackageAppData data = new MultiplePackageAppData(addResult.appData, addResult.userId);
                 data.isLoading = true;

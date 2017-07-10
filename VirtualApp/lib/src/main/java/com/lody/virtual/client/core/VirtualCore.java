@@ -2,6 +2,7 @@ package com.lody.virtual.client.core;
 
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -16,6 +17,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.ConditionVariable;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Process;
 import android.os.RemoteException;
@@ -40,8 +42,6 @@ import com.lody.virtual.remote.InstallResult;
 import com.lody.virtual.remote.InstalledAppInfo;
 import com.lody.virtual.server.IAppManager;
 import com.lody.virtual.server.interfaces.IAppRequestListener;
-import com.lody.virtual.server.interfaces.IPackageObserver;
-import com.lody.virtual.server.interfaces.IUiCallback;
 
 import java.io.IOException;
 import java.util.List;
@@ -500,13 +500,16 @@ public final class VirtualCore {
         return true;
     }
 
-    public abstract static class UiCallback extends IUiCallback.Stub {
+    public void setLoadingPage(Intent intent, Activity activity) {
+        if (activity != null) {
+            setLoadingPage(intent, mirror.android.app.Activity.mToken.get(activity));
+        }
     }
 
-    public void setUiCallback(Intent intent, IUiCallback callback) {
-        if (callback != null) {
+    public void setLoadingPage(Intent intent, IBinder token) {
+        if (token != null) {
             Bundle bundle = new Bundle();
-            BundleCompat.putBinder(bundle, "_VA_|_ui_callback_", callback.asBinder());
+            BundleCompat.putBinder(bundle, "_VA_|_loading_token_", token);
             intent.putExtra("_VA_|_sender_", bundle);
         }
     }
@@ -708,24 +711,6 @@ public final class VirtualCore {
             return getService().getPackageInstalledUsers(packageName);
         } catch (RemoteException e) {
             return VirtualRuntime.crash(e);
-        }
-    }
-
-    public abstract static class PackageObserver extends IPackageObserver.Stub {}
-
-    public void registerObserver(IPackageObserver observer) {
-        try {
-            getService().registerObserver(observer);
-        } catch (RemoteException e) {
-            VirtualRuntime.crash(e);
-        }
-    }
-
-    public void unregisterObserver(IPackageObserver observer) {
-        try {
-            getService().unregisterObserver(observer);
-        } catch (RemoteException e) {
-            VirtualRuntime.crash(e);
         }
     }
 
