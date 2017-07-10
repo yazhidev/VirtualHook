@@ -16,6 +16,14 @@ Currently VirtualHook supports:
 - __EXPERIMENTAL__ Android 7.0(API 24)
 - __EXPERIMENTAL__ Android 7.1(API 25)
 
+## ChangeLog
+
+Basically, VirtualHook makes the following changes to the upstream:
+
+- Inject YAHFA when the app is started: [commit 5c530ee](https://github.com/rk700/VirtualHook/commit/5c530eeb241ba4ff5a3d34831b5c9af21ae4b0d8)
+- Use MSHook instead of GodinHook: [commit 6ab8078d](https://github.com/rk700/VirtualHook/commit/6ab8078d24e25d724b7d20b990f8589d02e8429c)
+- Remove Admob and Flurry
+
 ## Build
 
 Import and build the project in Android Studio(__with Instant Run disabled__). There are four modules:
