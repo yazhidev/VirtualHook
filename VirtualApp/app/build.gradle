@@ -1,3 +1,5 @@
+import java.security.acl.Group
+
 apply plugin: 'com.android.application'
 apply plugin: 'me.tatarka.retrolambda'
 
@@ -10,7 +12,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 22
         versionCode 23
-        versionName "1.2.4"
+        versionName "1.2.5"
         android {
             defaultConfig {
                 ndk {

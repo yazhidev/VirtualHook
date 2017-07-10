@@ -75,8 +75,8 @@ public class LoadingActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                 }
-            }).done((res) ->
-                    VActivityManager.get().startActivity(intent, userId));
+                VActivityManager.get().startActivity(intent, userId);
+            });
         }
     }
 

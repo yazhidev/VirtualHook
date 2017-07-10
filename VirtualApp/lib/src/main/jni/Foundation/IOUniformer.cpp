@@ -555,21 +555,8 @@ HOOK_DEF(int, lchown, const char *pathname, uid_t owner, gid_t group) {
 
 // int (*origin_execve)(const char *pathname, char *const argv[], char *const envp[]);
 HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp[]) {
-
-    /**
-     * TODO (RUC):
-     * Fix the LD_PRELOAD.
-     * Now we just fill it.
-     */
     const char **newArgv;
     if (!strcmp(pathname, "/system/bin/dex2oat")) {
-        /*
-        for (int i = 0; envp[i] != NULL; ++i) {
-            if (!strncmp(envp[i], "LD_PRELOAD=", 11)) {
-                const_cast<char **>(envp)[i] = getenv("LD_PRELOAD");
-            }
-        }
-         */
         newArgv = patchArgv(argv);
     }
     else {
@@ -582,7 +569,7 @@ HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp
         LOGD("argv[%i] : %s", i, newArgv[i]);
     }
     for (int i = 0; envp[i] != NULL; ++i) {
-        LOGD("envp[%i] : %s", i, envp[i]);
+        LOGE("envp[%i] : %s", i, envp[i]);
     }
 #endif
 
@@ -641,8 +628,9 @@ HOOK_DEF(int, kill, pid_t pid, int sig) {
     return ret;
 }
 
-
-
+HOOK_DEF(pid_t, vfork) {
+    return fork();
+}
 
 __END_DECLS
 // end IO DEF
@@ -685,6 +673,7 @@ void IOUniformer::startUniformer(int api_level, int preview_api_level) {
     apiLevel = api_level;
 
     HOOK_SYMBOL(RTLD_DEFAULT, chroot);
+    HOOK_SYMBOL(RTLD_DEFAULT, vfork);
     HOOK_SYMBOL(RTLD_DEFAULT, kill);
     HOOK_SYMBOL(RTLD_DEFAULT, chdir);
     HOOK_SYMBOL(RTLD_DEFAULT, truncate);
