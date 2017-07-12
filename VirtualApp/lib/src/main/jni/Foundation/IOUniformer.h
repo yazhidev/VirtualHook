@@ -7,13 +7,13 @@
 
 
 #include <string>
-#include <map>
 #include <list>
 #include <jni.h>
 #include <dlfcn.h>
 #include <stddef.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <sys/syscall.h>
 
 //#include <MSHook.h>

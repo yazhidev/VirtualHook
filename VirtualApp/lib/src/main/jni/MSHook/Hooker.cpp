@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include "Hooker.h"
-#include "util.h"
 #include "ARM.h"
 #include "Thumb.h"
 #include "x86.h"
