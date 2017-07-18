@@ -14,8 +14,11 @@ import android.os.IBinder;
 import android.os.RemoteException;
 
 import com.lody.virtual.client.env.VirtualRuntime;
+import com.lody.virtual.helper.utils.VLog;
+import com.lody.virtual.remote.VParceledListSlice;
 import com.lody.virtual.server.IPackageInstaller;
 import com.lody.virtual.server.IPackageManager;
+import com.lody.virtual.server.pm.PackageSetting;
 
 import java.util.List;
 
@@ -106,6 +109,14 @@ public class VPackageManager {
     public ActivityInfo getReceiverInfo(ComponentName componentName, int flags, int userId) {
         try {
             return getInterface().getReceiverInfo(componentName, flags, userId);
+        } catch (RemoteException e) {
+            return VirtualRuntime.crash(e);
+        }
+    }
+
+    public String[] getInstalledHookPlugins(){
+        try {
+            return getInterface().getInstalledHookPlugins();
         } catch (RemoteException e) {
             return VirtualRuntime.crash(e);
         }

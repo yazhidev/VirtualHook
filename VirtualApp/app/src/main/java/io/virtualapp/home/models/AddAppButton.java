@@ -34,7 +34,7 @@ public class AddAppButton implements AppData {
 
     @Override
     public String getName() {
-        return "Add App";
+        return "Add";
     }
 
     @Override
@@ -54,6 +54,11 @@ public class AddAppButton implements AppData {
 
     @Override
     public boolean canCreateShortcut() {
+        return false;
+    }
+
+    @Override
+    public boolean isHook() {
         return false;
     }
 }

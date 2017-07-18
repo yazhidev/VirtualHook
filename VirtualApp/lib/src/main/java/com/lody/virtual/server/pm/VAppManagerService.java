@@ -111,6 +111,9 @@ public class VAppManagerService extends IAppManager.Stub {
         chmodPackageDictionary(cacheFile);
         PackageCacheManager.put(pkg, ps);
         BroadcastSystem.get().startApp(pkg);
+        if(ps.isHook) {
+            HookCacheManager.put(ps.packageName);
+        }
         return true;
     }
 
@@ -143,7 +146,8 @@ public class VAppManagerService extends IAppManager.Stub {
         if (path == null) {
             return InstallResult.makeFailure("path = NULL");
         }
-        boolean skipDexOpt = (flags & InstallStrategy.SKIP_DEX_OPT) != 0;
+//        boolean skipDexOpt = (flags & InstallStrategy.SKIP_DEX_OPT) != 0;
+        boolean isHook = (flags & InstallStrategy.IS_HOOK) != 0;
         File packageFile = new File(path);
         if (!packageFile.exists() || !packageFile.isFile()) {
             return InstallResult.makeFailure("Package File is not exist.");
@@ -177,7 +181,12 @@ public class VAppManagerService extends IAppManager.Stub {
         if (res.isUpdate) {
             FileUtils.deleteDir(libDir);
             VEnvironment.getOdexFile(pkg.packageName).delete();
-            VActivityManagerService.get().killAppByPkg(pkg.packageName, VUserHandle.USER_ALL);
+            if(isHook) {
+                VActivityManagerService.get().killAllApps();
+            }
+            else {
+                VActivityManagerService.get().killAppByPkg(pkg.packageName, VUserHandle.USER_ALL);
+            }
         }
         if (!libDir.exists() && !libDir.mkdirs()) {
             return InstallResult.makeFailure("Unable to create lib dir.");
@@ -190,6 +199,21 @@ public class VAppManagerService extends IAppManager.Stub {
         }
 
         NativeLibraryHelperCompat.copyNativeBinaries(new File(path), libDir);
+        try {
+            // copy libva-native.so so that the symbol MSHookFunction() can be accessed in patch plugin after Android N
+            if(Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+                File vaNativeSo = new File(libDir, "libva-native.so");
+                if (!vaNativeSo.exists()) {
+                    FileUtils.createSymlink(
+                            new File(VEnvironment.getRoot().getParent(), "lib/libva-native.so").getAbsolutePath(),
+                            vaNativeSo.getAbsolutePath());
+                }
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
         if (!dependSystem) {
             File privatePackageFile = new File(appDir, "base.apk");
             File parentFolder = privatePackageFile.getParentFile();
@@ -216,7 +240,7 @@ public class VAppManagerService extends IAppManager.Stub {
         } else {
             ps = new PackageSetting();
         }
-        ps.skipDexOpt = skipDexOpt;
+        ps.isHook = isHook;
         ps.dependSystem = dependSystem;
         ps.apkPath = packageFile.getPath();
         ps.libPath = libDir.getPath();
@@ -232,11 +256,15 @@ public class VAppManagerService extends IAppManager.Stub {
                 ps.setUserState(userId, false/*launched*/, false/*hidden*/, installed);
             }
         }
+
         PackageParserEx.savePackageCache(pkg);
         PackageCacheManager.put(pkg, ps);
         mPersistenceLayer.save();
         BroadcastSystem.get().startApp(pkg);
-        if (notify) {
+        if(isHook) {
+            HookCacheManager.put(ps.packageName);
+        }
+        else if (notify) {
             notifyAppInstalled(ps, -1);
         }
         res.isSuccess = true;
@@ -330,7 +358,12 @@ public class VAppManagerService extends IAppManager.Stub {
         String packageName = ps.packageName;
         try {
             BroadcastSystem.get().stopApp(packageName);
-            VActivityManagerService.get().killAppByPkg(packageName, VUserHandle.USER_ALL);
+            if(ps.isHook) {
+                VActivityManagerService.get().killAllApps();
+            }
+            else {
+                VActivityManagerService.get().killAppByPkg(packageName, VUserHandle.USER_ALL);
+            }
             VEnvironment.getPackageResourcePath(packageName).delete();
             FileUtils.deleteDir(VEnvironment.getDataAppPackageDirectory(packageName));
             VEnvironment.getOdexFile(packageName).delete();
@@ -338,6 +371,7 @@ public class VAppManagerService extends IAppManager.Stub {
                 FileUtils.deleteDir(VEnvironment.getDataUserPackageDirectory(id, packageName));
             }
             PackageCacheManager.remove(packageName);
+            HookCacheManager.remove(packageName);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

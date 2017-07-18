@@ -318,7 +318,7 @@ public final class VirtualCore {
      */
     public void preOpt(String pkg) throws IOException {
         InstalledAppInfo info = getInstalledAppInfo(pkg, 0);
-        if (info != null && !info.dependSystem && !info.skipDexOpt) {
+        if (info != null && !info.dependSystem) {
             DexFile.loadDex(info.apkPath, info.getOdexFile().getPath(), 0).close();
         }
     }

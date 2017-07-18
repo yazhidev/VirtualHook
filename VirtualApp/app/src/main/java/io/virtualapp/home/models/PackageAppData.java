@@ -18,10 +18,12 @@ public class PackageAppData implements AppData {
     public boolean fastOpen;
     public boolean isFirstOpen;
     public boolean isLoading;
+    public boolean isHook;
 
     public PackageAppData(Context context, InstalledAppInfo installedAppInfo) {
         this.packageName = installedAppInfo.packageName;
         this.isFirstOpen = !installedAppInfo.isLaunched(0);
+        this.isHook = installedAppInfo.isHook;
         loadData(context, installedAppInfo.getApplicationInfo(installedAppInfo.getInstalledUsers()[0]));
     }
 
@@ -79,5 +81,10 @@ public class PackageAppData implements AppData {
     @Override
     public boolean canCreateShortcut() {
         return true;
+    }
+
+    @Override
+    public boolean isHook() {
+        return isHook;
     }
 }

@@ -33,9 +33,24 @@ Import and build the project in Android Studio(__with Instant Run disabled__). T
 - `YAHFA`. This is the YAHFA hook module.
 - `demoHookPlugin`. This is a demo hook plugin which compiles to an APK.
 
-After building the APKs, push the `demoHookPlugin` APK to device in folder `/sdcard/io.virtualhook/` and run the main application. All plugin APKs in `/sdcard/io.virtualhook` would be applied to applications running in VirtualHook.
+## Usage
 
-Please refer to [demoHookPlugin](https://github.com/rk700/VirtualHook/tree/master/VirtualApp/demoHookPlugin) for more details.
+- Write and build a hook plugin APK. You can take a look at the [demoHookPlugin](https://github.com/rk700/VirtualHook/tree/master/VirtualApp/app/src/main/res/drawable-xxhdpi/ic_extension_black_24dp.png) module for reference. __Don't forget to put following meta-data in AndroidManifest.xml:__
+
+```xml
+    <application
+        android:label="@string/app_name">
+        <meta-data
+            android:name="yahfa.hook.plugin"
+            android:value="true"
+        />
+    </application>
+```
+
+- Push the plugin APK to sdcard
+- Run VirtualHook and click the `Add` button
+- Swipe to the 'APPS IN SDCARD' page. Then select and add hook plugins which are displayed with an icon ![](VirtualApp/app/src/main/res/drawable-xxhdpi/ic_extension_black_24dp.png)
+- Add and run non-plugin apps 
 
 ## Hooking Native Methods
 

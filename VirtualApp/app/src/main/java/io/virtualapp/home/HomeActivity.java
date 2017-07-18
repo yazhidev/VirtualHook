@@ -410,7 +410,7 @@ public class HomeActivity extends VActivity implements HomeContract.HomeView {
                 AppData data = mLaunchpadAdapter.getList().get(target.getAdapterPosition());
                 return data.canReorder();
             } catch (IndexOutOfBoundsException e) {
-                e.printStackTrace();
+//                e.printStackTrace();
             }
             return false;
         }

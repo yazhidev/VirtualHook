@@ -82,6 +82,12 @@ public class CloneAppListAdapter extends DragSelectRecyclerViewAdapter<CloneAppL
         } else {
             holder.labelView.setVisibility(View.INVISIBLE);
         }
+        if(info.isHook) {
+            holder.isHookIcon.setVisibility(View.VISIBLE);
+        }
+        else {
+            holder.isHookIcon.setVisibility(View.INVISIBLE);
+        }
 
         holder.itemView.setOnClickListener(v -> {
             mItemEventListener.onItemClick(info, position);
@@ -127,6 +133,7 @@ public class CloneAppListAdapter extends DragSelectRecyclerViewAdapter<CloneAppL
         private TextView nameView;
         private ImageView appCheckView;
         private LabelView labelView;
+        ImageView isHookIcon;
 
         ViewHolder(View itemView) {
             super(itemView);
@@ -135,6 +142,7 @@ public class CloneAppListAdapter extends DragSelectRecyclerViewAdapter<CloneAppL
                 nameView = (TextView) itemView.findViewById(R.id.item_app_name);
                 appCheckView = (ImageView) itemView.findViewById(R.id.item_app_checked);
                 labelView = (LabelView) itemView.findViewById(R.id.item_app_clone_count);
+                isHookIcon = (ImageView)itemView.findViewById(R.id.item_app_ishook);
             }
         }
     }

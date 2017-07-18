@@ -22,6 +22,7 @@ import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.fixer.ComponentFixer;
 import com.lody.virtual.client.stub.StubManifest;
 import com.lody.virtual.helper.compat.ObjectsCompat;
+import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.os.VUserHandle;
 import com.lody.virtual.remote.VParceledListSlice;
 import com.lody.virtual.server.IPackageInstaller;
@@ -38,6 +39,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static android.content.pm.PackageManager.MATCH_DIRECT_BOOT_UNAWARE;
@@ -94,7 +96,6 @@ public class VPackageManagerService extends IPackageManager.Stub {
     private final HashMap<String, VPackage.ProviderComponent> mProvidersByAuthority = new HashMap<>();
 
     private final Map<String, VPackage> mPackages = PackageCacheManager.PACKAGE_CACHE;
-
 
     public VPackageManagerService() {
         Intent intent = new Intent();
@@ -603,6 +604,10 @@ public class VPackageManagerService extends IPackageManager.Stub {
             Collections.sort(finalList, sProviderInitOrderSorter);
         }
         return new VParceledListSlice<>(finalList);
+    }
+
+    public String[] getInstalledHookPlugins(){
+        return HookCacheManager.getAll();
     }
 
     @Override

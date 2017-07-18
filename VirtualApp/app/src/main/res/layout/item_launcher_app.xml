@@ -18,6 +18,13 @@
         lv:lv_text="2"
         lv:lv_text_size="12sp"/>
 
+    <ImageView
+        android:id="@+id/item_app_ishook_launcher"
+        android:layout_width="23dp"
+        android:layout_height="23dp"
+        android:layout_gravity="top|start"
+        android:src="@drawable/ic_extension_black_24dp" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -29,7 +36,7 @@
         android:paddingTop="35dp">
 
         <io.virtualapp.widgets.LauncherIconView
-            android:id="@+id/item_app_icon"
+            android:id="@+id/item_app_icon_launcher"
             android:layout_width="45dp"
             android:layout_height="45dp"
             android:layout_marginBottom="12dp"
@@ -40,7 +47,7 @@
 
 
         <io.virtualapp.widgets.MarqueeTextView
-            android:id="@+id/item_app_name"
+            android:id="@+id/item_app_name_launcher"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="marquee"

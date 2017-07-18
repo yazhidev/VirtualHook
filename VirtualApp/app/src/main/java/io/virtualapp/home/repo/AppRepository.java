@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import com.lody.virtual.GmsSupport;
 import com.lody.virtual.client.core.InstallStrategy;
 import com.lody.virtual.client.core.VirtualCore;
+import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.remote.InstallResult;
 import com.lody.virtual.remote.InstalledAppInfo;
 
@@ -60,7 +61,7 @@ public class AppRepository implements AppDataSource {
             List<InstalledAppInfo> infos = VirtualCore.get().getInstalledApps(0);
             List<AppData> models = new ArrayList<>();
             for (InstalledAppInfo info : infos) {
-                if (!VirtualCore.get().isPackageLaunchable(info.packageName)) {
+                if (!info.isHook && !VirtualCore.get().isPackageLaunchable(info.packageName)) {
                     continue;
                 }
                 PackageAppData data = new PackageAppData(mContext, info);
@@ -101,7 +102,8 @@ public class AppRepository implements AppDataSource {
                     continue;
                 PackageInfo pkgInfo = null;
                 try {
-                    pkgInfo = context.getPackageManager().getPackageArchiveInfo(f.getAbsolutePath(), 0);
+                    pkgInfo = context.getPackageManager().getPackageArchiveInfo(
+                            f.getAbsolutePath(), PackageManager.GET_META_DATA);
                     pkgInfo.applicationInfo.sourceDir = f.getAbsolutePath();
                     pkgInfo.applicationInfo.publicSourceDir = f.getAbsolutePath();
                 } catch (Exception e) {
@@ -128,6 +130,10 @@ public class AppRepository implements AppDataSource {
                 continue;
             }
             ApplicationInfo ai = pkg.applicationInfo;
+            boolean isHookPlugin = false;
+            if(ai.metaData != null) {
+                isHookPlugin = ai.metaData.getBoolean("yahfa.hook.plugin", false);
+            }
             String path = ai.publicSourceDir != null ? ai.publicSourceDir : ai.sourceDir;
             if (path == null) {
                 continue;
@@ -138,9 +144,14 @@ public class AppRepository implements AppDataSource {
             info.path = path;
             info.icon = ai.loadIcon(pm);
             info.name = ai.loadLabel(pm);
+            info.isHook = isHookPlugin;
             InstalledAppInfo installedAppInfo = VirtualCore.get().getInstalledAppInfo(pkg.packageName, 0);
             if (installedAppInfo != null) {
-                info.cloneCount = installedAppInfo.getInstalledUsers().length;
+                if (isHookPlugin) { // do not show hook plugin if already installed
+                    continue;
+                } else {
+                    info.cloneCount = installedAppInfo.getInstalledUsers().length;
+                }
             }
             list.add(info);
         }
@@ -150,8 +161,11 @@ public class AppRepository implements AppDataSource {
     @Override
     public InstallResult addVirtualApp(AppInfoLite info) {
         int flags = InstallStrategy.COMPARE_VERSION; // do not SKIP_DEX_OPT since we want the hooked app compiled
-        if (info.fastOpen) {
+        if (info.fastOpen && !info.isHook) {
             flags |= InstallStrategy.DEPEND_SYSTEM_IF_EXIST;
+        }
+        if(info.isHook) {
+            flags |= InstallStrategy.IS_HOOK;
         }
         return VirtualCore.get().installPackage(info.path, flags);
     }

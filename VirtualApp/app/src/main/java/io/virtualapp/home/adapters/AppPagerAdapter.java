@@ -38,7 +38,7 @@ public class AppPagerAdapter extends FragmentPagerAdapter {
                 File dir = Reflect.on(volume).call("getPathFile").get();
                 String label = Reflect.on(volume).call("getUserLabel").get();
                 if (dir.listFiles() != null) {
-                    titles.add(label);
+                    titles.add("Apps in "+label);
                     dirs.add(dir);
                 }
             }
@@ -46,7 +46,7 @@ public class AppPagerAdapter extends FragmentPagerAdapter {
             // Fallback: only support the default storage sources
             File storageFir = Environment.getExternalStorageDirectory();
             if (storageFir.list() != null) {
-                titles.add("Ghost Installation");
+                titles.add("Apps in sdcard");
                 dirs.add(storageFir);
             }
         }

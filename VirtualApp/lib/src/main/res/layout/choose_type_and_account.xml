@@ -35,7 +35,6 @@
 
     <!-- Alert dialog style buttons along the bottom. -->
     <LinearLayout
-        android:id="@+id/button_bar"
         style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -67,6 +67,10 @@ public class VEnvironment {
         return new File(getDataAppPackageDirectory(packgeName), "base.apk");
     }
 
+    public static File getPackageLibPath(String packgeName) {
+        return new File(getDataAppPackageDirectory(packgeName), "lib");
+    }
+
     public static File getDataAppDirectory() {
         return ensureCreated(new File(getDataDirectory(), "app"));
     }
@@ -142,5 +146,9 @@ public class VEnvironment {
 
     public static File getPackageInstallerStageDir() {
         return ensureCreated(new File(DATA_DIRECTORY, ".session_dir"));
+    }
+
+    public static File getRoot() {
+        return ROOT;
     }
 }

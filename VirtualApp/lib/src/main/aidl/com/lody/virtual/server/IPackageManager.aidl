@@ -52,6 +52,8 @@ interface IPackageManager {
 
          List<ResolveInfo> queryIntentContentProviders(in Intent intent, String resolvedType, int flags, int userId);
 
+         String[] getInstalledHookPlugins();
+
          VParceledListSlice getInstalledPackages(int flags, int userId);
 
          VParceledListSlice getInstalledApplications(int flags, int userId);

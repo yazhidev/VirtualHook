@@ -6,6 +6,7 @@ import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.List;
@@ -59,11 +60,18 @@ public class LaunchpadAdapter extends RecyclerView.Adapter<LaunchpadAdapter.View
         holder.color = getColor(position);
         holder.iconView.setImageDrawable(data.getIcon());
         holder.nameView.setText(data.getName());
-        if (data.isFirstOpen() && !data.isLoading()) {
-            holder.firstOpenDot.setVisibility(View.VISIBLE);
-        } else {
-            holder.firstOpenDot.setVisibility(View.INVISIBLE);
+        if(!data.isHook()) {
+            if (data.isFirstOpen() && !data.isLoading()) {
+                holder.firstOpenDot.setVisibility(View.VISIBLE);
+            } else {
+                holder.firstOpenDot.setVisibility(View.INVISIBLE);
+            }
+            holder.isHookIcon.setVisibility(View.INVISIBLE);
         }
+        else{
+            holder.isHookIcon.setVisibility(View.VISIBLE);
+        }
+
         holder.itemView.setBackgroundColor(holder.color);
         holder.itemView.setOnClickListener(v -> {
             if (mAppClickListener != null) {
@@ -172,13 +180,15 @@ public class LaunchpadAdapter extends RecyclerView.Adapter<LaunchpadAdapter.View
         TextView nameView;
         LabelView spaceLabelView;
         View firstOpenDot;
+        ImageView isHookIcon;
 
         ViewHolder(View itemView) {
             super(itemView);
-            iconView = (LauncherIconView) itemView.findViewById(R.id.item_app_icon);
-            nameView = (TextView) itemView.findViewById(R.id.item_app_name);
+            iconView = (LauncherIconView) itemView.findViewById(R.id.item_app_icon_launcher);
+            nameView = (TextView) itemView.findViewById(R.id.item_app_name_launcher);
             spaceLabelView = (LabelView) itemView.findViewById(R.id.item_app_space_idx);
             firstOpenDot = itemView.findViewById(R.id.item_first_open_dot);
+            isHookIcon = (ImageView)itemView.findViewById(R.id.item_app_ishook_launcher);
         }
     }
 }

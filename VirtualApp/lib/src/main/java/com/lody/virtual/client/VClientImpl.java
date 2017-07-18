@@ -48,6 +48,9 @@ import com.lody.virtual.os.VEnvironment;
 import com.lody.virtual.os.VUserHandle;
 import com.lody.virtual.remote.InstalledAppInfo;
 import com.lody.virtual.remote.PendingResultData;
+import com.lody.virtual.server.pm.HookCacheManager;
+import com.lody.virtual.server.pm.PackageCacheManager;
+import com.lody.virtual.server.pm.PackageSetting;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -313,42 +316,24 @@ public final class VClientImpl extends IVClient.Stub {
         ClassLoader targetClassLoader = mInitialApplication.getClassLoader();
 
         try {
-            File hookFolder = new File("/sdcard/io.virtualhook");
-            for(File hookFile : hookFolder.listFiles()) {
-                applyHookPlugin(hookFile, targetClassLoader);
+            for(String pluginName : VPackageManager.get().getInstalledHookPlugins()) {
+                VLog.w("VirtualHook", "Applying hook "+pluginName);
+                applyHookPlugin(VEnvironment.getPackageResourcePath(pluginName).getAbsolutePath(),
+                        VEnvironment.getPackageLibPath(pluginName).getAbsolutePath(), targetClassLoader);
             }
 
         }
         catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
-    private void applyHookPlugin(File patchApk, ClassLoader appClassLoader) {
+    private void applyHookPlugin(String apkPath, String libPath, ClassLoader appClassLoader) {
         HookMain hookMain = new HookMain();
-        File libDir = ensureCreated(
-            new File(VEnvironment.getDataUserPackageDirectory(VUserHandle.myUserId(), patchApk.getName()), "lib")
-        );
-
-        try {
-            // copy native libraries from patch plugin
-            NativeLibraryHelperCompat.copyNativeBinaries(patchApk, libDir);
-            // copy libva-native.so so that the symbol MSHookFunction() can be accessed in patch plugin after Android N
-            File vaNativeSo = new File(libDir, "libva-native.so");
-            if(!vaNativeSo.exists()) {
-                FileUtils.createSymlink(
-                        new File(VirtualCore.get().getContext().getApplicationInfo().dataDir,
-                                "lib/libva-native.so").getAbsolutePath()
-                        , vaNativeSo.getAbsolutePath());
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        DexClassLoader dexClassLoader = new DexClassLoader(patchApk.getAbsolutePath(),
+        DexClassLoader dexClassLoader = new DexClassLoader(apkPath,
                 VEnvironment.getDalvikCacheDirectory().getAbsolutePath(),
-                libDir.getAbsolutePath(),
+                libPath,
                 appClassLoader);
         hookMain.doHookDefault(dexClassLoader, appClassLoader);
     }
