@@ -330,12 +330,11 @@ public final class VClientImpl extends IVClient.Stub {
     }
 
     private void applyHookPlugin(String apkPath, String libPath, ClassLoader appClassLoader) {
-        HookMain hookMain = new HookMain();
         DexClassLoader dexClassLoader = new DexClassLoader(apkPath,
                 VEnvironment.getDalvikCacheDirectory().getAbsolutePath(),
                 libPath,
                 appClassLoader);
-        hookMain.doHookDefault(dexClassLoader, appClassLoader);
+        HookMain.doHookDefault(dexClassLoader, appClassLoader);
     }
 
     private void setupUncaughtHandler() {
