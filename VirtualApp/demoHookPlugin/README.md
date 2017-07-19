@@ -11,6 +11,6 @@ The arguments would be logged and then the original method be called.
 
 ## Usage
 
-Build the plugin and you'll get an APK file. Push the APK to `/sdcard/io.virtualhook/patch.apk`, then add and run applications in VirtualHook.
+Build the plugin and you'll get an APK file. Push the APK to sdcard, then add the hook and run applications in VirtualHook.
 
 Please take a look at [the demo plugin in YAHFA](https://github.com/rk700/YAHFA/tree/master/demoPlugin) on how to write a hook plugin.

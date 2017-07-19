@@ -20,9 +20,10 @@ Currently VirtualHook supports:
 
 Basically, VirtualHook makes the following changes to the upstream:
 
-- Inject YAHFA when the app is started: [commit 5c530ee](https://github.com/rk700/VirtualHook/commit/5c530eeb241ba4ff5a3d34831b5c9af21ae4b0d8)
-- Use MSHook instead of GodinHook: [commit 6ab8078d](https://github.com/rk700/VirtualHook/commit/6ab8078d24e25d724b7d20b990f8589d02e8429c)
+- Inject YAHFA when the app is started: 5c530eeb241ba4ff5a3d34831b5c9af21ae4b0d8
+- Use MSHook instead of GodinHook: 6ab8078d24e25d724b7d20b990f8589d02e8429c
 - Remove Admob and Flurry
+- Install hooks manually instead of loading them from sdcard automatically: a95ba5184c22d3e91953ff603f47e8955c7c4c49
 
 ## Build
 
@@ -35,7 +36,7 @@ Import and build the project in Android Studio(__with Instant Run disabled__). T
 
 ## Usage
 
-- Write and build a hook plugin APK. You can take a look at the [demoHookPlugin](https://github.com/rk700/VirtualHook/tree/master/VirtualApp/app/src/main/res/drawable-xxhdpi/ic_extension_black_24dp.png) module for reference. __Don't forget to put following meta-data in AndroidManifest.xml:__
+- Write and build a hook plugin APK. You can take a look at the [demoHookPlugin](/VirtualApp/demoHookPlugin) module for reference. __Don't forget to put following meta-data in AndroidManifest.xml:__
 
 ```xml
     <application
@@ -49,7 +50,7 @@ Import and build the project in Android Studio(__with Instant Run disabled__). T
 
 - Push the plugin APK to sdcard
 - Run VirtualHook and click the `Add` button
-- Swipe to the 'APPS IN SDCARD' page. Then select and add hook plugins which are displayed with an icon ![](VirtualApp/app/src/main/res/drawable-xxhdpi/ic_extension_black_24dp.png)
+- Swipe to the 'APPS IN SDCARD' page. Then select and add hook plugins which are displayed with an icon ![](/VirtualApp/app/src/main/res/drawable-xxhdpi/ic_extension_black_24dp.png)
 - Add and run non-plugin apps 
 
 ## Hooking Native Methods
