@@ -176,8 +176,8 @@ public class NativeEngine {
 
     public static void hook() {
         try {
-            int previewSdkInt = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? Build.VERSION.PREVIEW_SDK_INT : 0;
-            nativeStartUniformer(Build.VERSION.SDK_INT, previewSdkInt);
+//            int previewSdkInt = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? Build.VERSION.PREVIEW_SDK_INT : 0;
+            nativeStartUniformer();
         } catch (Throwable e) {
             VLog.e(TAG, VLog.getStackTraceString(e));
         }
@@ -240,7 +240,6 @@ public class NativeEngine {
 
     private static native void nativeMark();
 
-
     private static native String nativeRestoreRedirectedPath(String redirectedPath);
 
     private static native String nativeGetRedirectedPath(String orgPath);
@@ -249,9 +248,11 @@ public class NativeEngine {
 
     private static native void nativeReadOnly(String path);
 
-    private static native void nativeStartUniformer(int apiLevel, int previewApiLevel);
+    private static native void nativeStartUniformer();
 
     public static int onGetUid(int uid) {
         return VClientImpl.get().getBaseVUid();
     }
+
+    public static native void nativeHookExec(int apiLevel);
 }

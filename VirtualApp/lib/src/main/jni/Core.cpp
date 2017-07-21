@@ -15,8 +15,12 @@ static void Java_nativeHookNative(JNIEnv *env, jclass jclazz, jobjectArray javaM
 }
 
 
-static void Java_nativeStartUniformer(JNIEnv *env, jclass jclazz, jint apiLevel, jint previewApiLevel) {
-    IOUniformer::startUniformer(apiLevel, previewApiLevel);
+static void Java_nativeStartUniformer(JNIEnv *env, jclass jclazz) {
+    IOUniformer::startUniformer();
+}
+
+static void Java_nativeHookExec(JNIEnv *env, jclass jclazz, jint apiLevel) {
+    IOUniformer::hookExec(apiLevel);
 }
 
 static void Java_nativeReadOnly(JNIEnv *env, jclass jclazz, jstring _path) {
@@ -51,7 +55,8 @@ static jstring Java_nativeRestore(JNIEnv *env, jclass jclazz, jstring redirected
 
 
 static JNINativeMethod gMethods[] = {
-        NATIVE_METHOD((void *) Java_nativeStartUniformer, "nativeStartUniformer", "(II)V"),
+        NATIVE_METHOD((void *) Java_nativeStartUniformer, "nativeStartUniformer", "()V"),
+        NATIVE_METHOD((void *) Java_nativeHookExec, "nativeHookExec", "(I)V"),
         NATIVE_METHOD((void *) Java_nativeReadOnly, "nativeReadOnly", "(Ljava/lang/String;)V"),
         NATIVE_METHOD((void *) Java_nativeRedirect, "nativeRedirect",
                       "(Ljava/lang/String;Ljava/lang/String;)V"),

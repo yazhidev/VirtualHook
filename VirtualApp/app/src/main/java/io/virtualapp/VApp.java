@@ -2,7 +2,9 @@ package io.virtualapp;
 
 import android.app.Application;
 import android.content.Context;
+import android.os.Build;
 
+import com.lody.virtual.client.NativeEngine;
 import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.stub.StubManifest;
 
@@ -31,6 +33,7 @@ public class VApp extends Application {
         StubManifest.ENABLE_INNER_SHORTCUT = false;
         try {
             VirtualCore.get().startup(base);
+            NativeEngine.nativeHookExec(Build.VERSION.SDK_INT);
         } catch (Throwable e) {
             e.printStackTrace();
         }
