@@ -5,6 +5,14 @@ apply plugin: 'me.tatarka.retrolambda'
 
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'test'
+            keyPassword '123456'
+            storeFile file('/Users/liuruikai756/tmp/keystore/test_pwd_is_123456.jks')
+            storePassword '123456'
+        }
+    }
     compileSdkVersion 25
     buildToolsVersion '26.0.0'
     defaultConfig {
@@ -25,6 +33,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.config
         }
     }
     compileOptions {

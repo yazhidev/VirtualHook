@@ -37,6 +37,8 @@ import com.lody.virtual.client.ipc.VPackageManager;
 import com.lody.virtual.client.stub.StubManifest;
 import com.lody.virtual.helper.compat.BundleCompat;
 import com.lody.virtual.helper.utils.BitmapUtils;
+import com.lody.virtual.helper.utils.VLog;
+import com.lody.virtual.os.VEnvironment;
 import com.lody.virtual.os.VUserHandle;
 import com.lody.virtual.remote.InstallResult;
 import com.lody.virtual.remote.InstalledAppInfo;
@@ -46,6 +48,7 @@ import com.lody.virtual.server.interfaces.IAppRequestListener;
 import java.io.IOException;
 import java.util.List;
 
+import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import mirror.android.app.ActivityThread;
 
@@ -319,7 +322,14 @@ public final class VirtualCore {
     public void preOpt(String pkg) throws IOException {
         InstalledAppInfo info = getInstalledAppInfo(pkg, 0);
         if (info != null && !info.dependSystem) {
+            VLog.w("native", "load dex of "+info.apkPath+" to odex "+info.getOdexFile().getPath());
             DexFile.loadDex(info.apkPath, info.getOdexFile().getPath(), 0).close();
+         /*
+            DexClassLoader dexClassLoader = new DexClassLoader(info.apkPath,
+                    info.getOdexFile().getParent(),
+                    null,
+                    ClassLoader.getSystemClassLoader());
+                    */
         }
     }
 

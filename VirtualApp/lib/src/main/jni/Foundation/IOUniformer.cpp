@@ -20,23 +20,29 @@ hook_template(void *handle, const char *symbol, void *new_func, void **old_func)
 }
 
 static const char **patchArgv(char * const *argv) {
-    int i=0,j;
+    int i=0,j,k;
     while(argv[i] != NULL) {
         i++;
     }
     const char **res = (const char **)malloc((i+3)*sizeof(char *));
-    for(j=0; j<i; j++) {
-        res[j] = argv[j];
+    for(j=0,k=0; j<i; j++) {
+        if(!strcmp(argv[j], "--debuggable")) {
+            continue;
+        }
+        res[k] = argv[j];
+        k++;
     }
     if(apiLevel > ANDROID_L) {
-        res[j] = "--compile-pic";
-        j++;
+        res[k] = "--compile-pic";
+        k++;
     }
+    /*
     if(apiLevel >= ANDROID_M) {
         res[j] = "--debuggable";
         j++;
     }
-    res[j] = NULL;
+     */
+    res[k] = NULL;
     return res;
 }
 

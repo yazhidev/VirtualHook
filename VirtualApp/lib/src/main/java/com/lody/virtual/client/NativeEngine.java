@@ -113,6 +113,7 @@ public class NativeEngine {
         for (InstalledAppInfo info : installedAppInfos) {
             try {
                 sDexOverrideMap.put(new File(info.apkPath).getCanonicalPath(), info);
+                VLog.w(TAG, "map "+info.apkPath+" to "+info.getOdexFile().getAbsolutePath());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -225,9 +226,11 @@ public class NativeEngine {
         VLog.d(TAG, "DexOrJarPath = %s, OutputPath = %s.", dexOrJarPath, outputPath);
         try {
             String canonical = new File(dexOrJarPath).getCanonicalPath();
+            VLog.w(TAG, "canonical name is "+canonical);
             InstalledAppInfo info = sDexOverrideMap.get(canonical);
             if (info != null && !info.dependSystem) {
                 outputPath = info.getOdexFile().getPath();
+                VLog.w(TAG, "output path is "+outputPath);
                 params[1] = outputPath;
             }
         } catch (IOException e) {

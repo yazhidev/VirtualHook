@@ -1,6 +1,5 @@
 #include "jni.h"
 #include <string.h>
-#include <sys/mman.h>
 
 #include "common.h"
 #include "env.h"
@@ -24,10 +23,17 @@ static inline uint64_t read64(void *addr) {
 void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVersion) {
     int i;
     SDKVersion = sdkVersion;
+    LOGI("init to SDK %d", sdkVersion);
     switch(sdkVersion) {
+        case ANDROID_O:
+            OFFSET_ArtMehod_in_Object = 0;
+            OFFSET_hotness_count_in_ArtMethod = 4*4+2;
+            OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
+                        roundUpToPtrSize(4*4+2*2) + pointer_size*2;
+                        ArtMethodSize = roundUpToPtrSize(4*4+2*2)+pointer_size*3;
+        break;
         case ANDROID_N2:
         case ANDROID_N:
-            LOGI("init to SDK %d", sdkVersion);
             OFFSET_ArtMehod_in_Object = 0;
             OFFSET_hotness_count_in_ArtMethod = 4*4+2 ; // sizeof(GcRoot<mirror::Class>) = 4
 
@@ -38,7 +44,6 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
             ArtMethodSize = roundUpToPtrSize(4*4+2*2)+pointer_size*4;
             break;
         case ANDROID_M:
-            LOGI("init to SDK %d", sdkVersion);
             OFFSET_ArtMehod_in_Object = 0;
             OFFSET_entry_point_from_interpreter_in_ArtMethod = roundUpToPtrSize(4*7);
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
@@ -46,7 +51,6 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
             ArtMethodSize = roundUpToPtrSize(4*7)+pointer_size*3;
             break;
         case ANDROID_L2:
-            LOGI("init to SDK %d", sdkVersion);
             OFFSET_ArtMehod_in_Object = 4*2;
             OFFSET_entry_point_from_interpreter_in_ArtMethod = roundUpToPtrSize(OFFSET_ArtMehod_in_Object+4*7);
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
@@ -54,7 +58,6 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
             ArtMethodSize = OFFSET_entry_point_from_interpreter_in_ArtMethod+pointer_size*3;
             break;
         case ANDROID_L:
-            LOGI("init to SDK %d", sdkVersion);
             OFFSET_ArtMehod_in_Object = 4*2;
             OFFSET_entry_point_from_interpreter_in_ArtMethod = OFFSET_ArtMehod_in_Object+4*4;
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
@@ -100,8 +103,8 @@ static int doBackupAndHook(void *originMethod, void *hookMethod, void *backupMet
         LOGI("Allocating done");
     }
 
-//    LOGI("origin method is at %p, hook method is at %p, backup method is at %p",
-//         originMethod, hookMethod, backupMethod);
+    LOGI("origin method is at %p, hook method is at %p, backup method is at %p",
+         originMethod, hookMethod, backupMethod);
 
     if(!backupMethod) {
         LOGW("backup method is null");

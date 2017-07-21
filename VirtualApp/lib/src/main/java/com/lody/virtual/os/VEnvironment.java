@@ -113,7 +113,8 @@ public class VEnvironment {
     }
 
     public static File getOdexFile(String packageName) {
-        return new File(DALVIK_CACHE_DIRECTORY, "data@app@" + packageName + "-1@base.apk@classes.dex");
+        return new File(getDataAppPackageDirectory(packageName), "oat/x86/base.odex");
+//        return new File(DALVIK_CACHE_DIRECTORY, "data@app@" + packageName + "-1@base.apk@classes.dex");
     }
 
     public static File getDataAppPackageDirectory(String packageName) {
