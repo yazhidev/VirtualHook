@@ -20,10 +20,11 @@ Currently VirtualHook supports:
 
 Basically, VirtualHook makes the following changes to the upstream:
 
-- Inject YAHFA when the app is started: 5c530eeb241ba4ff5a3d34831b5c9af21ae4b0d8
-- Use MSHook instead of GodinHook: 6ab8078d24e25d724b7d20b990f8589d02e8429c
+- Inject YAHFA when the app is started: https://github.com/rk700/VirtualHook/commit/5c530eeb241ba4ff5a3d34831b5c9af21ae4b0d8
+- ~~Use MSHook instead of GodinHook: https://github.com/rk700/VirtualHook/commit/6ab8078d24e25d724b7d20b990f8589d02e8429c~~
 - Remove Admob and Flurry
-- Install hooks manually instead of loading them from sdcard automatically: a95ba5184c22d3e91953ff603f47e8955c7c4c49
+- Install hooks manually instead of loading them from sdcard automatically: https://github.com/rk700/VirtualHook/commit/a95ba5184c22d3e91953ff603f47e8955c7c4c49
+- Do preopt when installing plugins: https://github.com/rk700/VirtualHook/commit/c444f5e7c8c6628a498e16a56969c7e160ff6cb0
 
 ## Build
 
