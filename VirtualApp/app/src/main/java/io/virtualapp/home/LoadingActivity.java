@@ -3,6 +3,7 @@ package io.virtualapp.home;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -56,29 +57,29 @@ public class LoadingActivity extends AppCompatActivity {
         nameView.setText(String.format(Locale.ENGLISH, "Opening %s...", appModel.name));
 
         Intent intent = getIntent().getParcelableExtra(KEY_INTENT);
-        VirtualCore.get().setLoadingPage(intent, this);
-        if (intent != null) {
-            VUiKit.defer().when(() -> {
-                long startTime = System.currentTimeMillis();
-                if (!appModel.fastOpen) {
-                    try {
-                        VirtualCore.get().preOpt(appModel.packageName);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                long spend = System.currentTimeMillis() - startTime;
-                if (spend < 500) {
-                    try {
-                        Thread.sleep(500 - spend);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                VActivityManager.get().startActivity(intent, userId);
-            });
+        if (intent == null) {
+            return;
         }
+        VirtualCore.get().setUiCallback(intent, mUiCallback);
+        VUiKit.defer().when(() -> {
+            if (!appModel.fastOpen) {
+                try {
+                    VirtualCore.get().preOpt(appModel.packageName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            VActivityManager.get().startActivity(intent, userId);
+        });
+
     }
+
+    private final VirtualCore.UiCallback mUiCallback = new VirtualCore.UiCallback() {
+        @Override
+        public void onAppOpened(String packageName, int userId) throws RemoteException {
+            finish();
+        }
+    };
 
     @Override
     protected void onResume() {

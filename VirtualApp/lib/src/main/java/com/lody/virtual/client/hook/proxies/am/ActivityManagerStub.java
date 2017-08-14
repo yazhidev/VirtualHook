@@ -67,6 +67,12 @@ public class ActivityManagerStub extends MethodInvocationProxy<MethodInvocationS
     protected void onBindMethods() {
         super.onBindMethods();
         if (VirtualCore.get().isVAppProcess()) {
+            addMethodProxy(new StaticMethodProxy("navigateUpTo") {
+                @Override
+                public Object call(Object who, Method method, Object... args) throws Throwable {
+                    throw new RuntimeException("Call navigateUpTo!!!!");
+                }
+            });
             addMethodProxy(new ReplaceLastUidMethodProxy("checkPermissionWithToken"));
             addMethodProxy(new isUserRunning());
             addMethodProxy(new ResultStaticMethodProxy("updateConfiguration", 0));

@@ -6,8 +6,9 @@ import java.util.Locale;
  * @author Lody
  */
 
-public class StubManifest {
+public class VASettings {
     public static final String STUB_DEF_AUTHORITY = "virtual_stub_";
+    public static long LOCATION_UPDATE_PERIOD = 3000L;
     public static String STUB_ACTIVITY = StubActivity.class.getName();
     public static String STUB_DIALOG = StubDialog.class.getName();
     public static String STUB_CP = StubContentProvider.class.getName();
@@ -15,14 +16,13 @@ public class StubManifest {
     public static String RESOLVER_ACTIVITY = ResolverActivity.class.getName();
     public static String STUB_CP_AUTHORITY = "virtual_stub_";
     public static int STUB_COUNT = 50;
-    public static String[] PRIVILEGE_APPS = new String[] {
+    public static String[] PRIVILEGE_APPS = new String[]{
             "com.google.android.gms"
     };
 
     /**
      * If enable,
      * App run in VA will allowed to create shortcut on your Desktop.
-     *
      */
     public static boolean ENABLE_INNER_SHORTCUT = true;
 
@@ -49,4 +49,5 @@ public class StubManifest {
     public static String getStubAuthority(int index) {
         return String.format(Locale.ENGLISH, "%s%d", STUB_CP_AUTHORITY, index);
     }
+
 }

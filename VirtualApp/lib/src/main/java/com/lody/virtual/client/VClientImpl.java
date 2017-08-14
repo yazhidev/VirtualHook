@@ -36,9 +36,10 @@ import com.lody.virtual.client.hook.providers.ProviderHook;
 import com.lody.virtual.client.hook.proxies.am.HCallbackStub;
 import com.lody.virtual.client.hook.secondary.ProxyServiceFactory;
 import com.lody.virtual.client.ipc.VActivityManager;
+import com.lody.virtual.client.ipc.VDeviceManager;
 import com.lody.virtual.client.ipc.VPackageManager;
 import com.lody.virtual.client.ipc.VirtualStorageManager;
-import com.lody.virtual.client.stub.StubManifest;
+import com.lody.virtual.client.stub.VASettings;
 import com.lody.virtual.helper.compat.BuildCompat;
 import com.lody.virtual.helper.compat.NativeLibraryHelperCompat;
 import com.lody.virtual.helper.compat.StorageManagerCompat;
@@ -48,9 +49,7 @@ import com.lody.virtual.os.VEnvironment;
 import com.lody.virtual.os.VUserHandle;
 import com.lody.virtual.remote.InstalledAppInfo;
 import com.lody.virtual.remote.PendingResultData;
-import com.lody.virtual.server.pm.HookCacheManager;
-import com.lody.virtual.server.pm.PackageCacheManager;
-import com.lody.virtual.server.pm.PackageSetting;
+import com.lody.virtual.remote.VDeviceInfo;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -96,6 +95,7 @@ public final class VClientImpl extends IVClient.Stub {
     private Instrumentation mInstrumentation = AppInstrumentation.getDefault();
     private IBinder token;
     private int vuid;
+    private VDeviceInfo deviceInfo;
     private AppBindData mBoundApplication;
     private Application mInitialApplication;
     private CrashHandler crashHandler;
@@ -108,16 +108,21 @@ public final class VClientImpl extends IVClient.Stub {
         return mBoundApplication != null;
     }
 
+    public VDeviceInfo getDeviceInfo() {
+        return deviceInfo;
+    }
+
     public Application getCurrentApplication() {
         return mInitialApplication;
     }
 
     public String getCurrentPackage() {
-        return mBoundApplication != null ? mBoundApplication.appInfo.packageName : null;
+        return mBoundApplication != null ?
+                mBoundApplication.appInfo.packageName : VPackageManager.get().getNameForUid(getVUid());
     }
 
     public ApplicationInfo getCurrentApplicationInfo() {
-        return mInitialApplication != null ? mInitialApplication.getApplicationInfo() : null;
+        return mBoundApplication != null ? mBoundApplication.appInfo : null;
     }
 
     public CrashHandler getCrashHandler() {
@@ -161,6 +166,7 @@ public final class VClientImpl extends IVClient.Stub {
     public void initProcess(IBinder token, int vuid) {
         this.token = token;
         this.vuid = vuid;
+        this.deviceInfo = VDeviceManager.get().getDeviceInfo(getUserId(vuid));
     }
 
     private void handleNewIntent(NewIntentData data) {
@@ -213,6 +219,8 @@ public final class VClientImpl extends IVClient.Stub {
         } catch (Throwable e) {
             e.printStackTrace();
         }
+        mirror.android.os.Build.SERIAL.set(deviceInfo.serial);
+        mirror.android.os.Build.DEVICE.set(Build.DEVICE.replace(" ", "_"));
         ActivityThread.mInitialApplication.set(
                 VirtualCore.mainThread(),
                 null
@@ -243,7 +251,7 @@ public final class VClientImpl extends IVClient.Stub {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && targetSdkVersion < Build.VERSION_CODES.LOLLIPOP) {
             mirror.android.os.Message.updateCheckRecycle.call(targetSdkVersion);
         }
-        if (StubManifest.ENABLE_IO_REDIRECT) {
+        if (VASettings.ENABLE_IO_REDIRECT) {
             startIOUniformer();
         }
         NativeEngine.hookNative();
@@ -376,13 +384,17 @@ public final class VClientImpl extends IVClient.Stub {
     private void startIOUniformer() {
         ApplicationInfo info = mBoundApplication.appInfo;
         int userId = VUserHandle.myUserId();
+        String wifiMacAddressFile = deviceInfo.getWifiFile(userId).getPath();
+        NativeEngine.redirectDirectory("/sys/class/net/wlan0/address", wifiMacAddressFile);
+        NativeEngine.redirectDirectory("/sys/class/net/eth0/address", wifiMacAddressFile);
+        NativeEngine.redirectDirectory("/sys/class/net/wifi/address", wifiMacAddressFile);
         NativeEngine.redirectDirectory("/data/data/" + info.packageName, info.dataDir);
         NativeEngine.redirectDirectory("/data/user/0/" + info.packageName, info.dataDir);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             NativeEngine.redirectDirectory("/data/user_de/0/" + info.packageName, info.dataDir);
         }
         String libPath = new File(VEnvironment.getDataAppPackageDirectory(info.packageName), "lib").getAbsolutePath();
-        String userLibPath = new File(VEnvironment.getDataUserPackageDirectory(userId, info.packageName), "lib").getAbsolutePath();
+        String userLibPath = new File(VEnvironment.getUserSystemDirectory(userId), info.packageName + "/lib").getAbsolutePath();
         NativeEngine.redirectDirectory(userLibPath, libPath);
         NativeEngine.redirectDirectory("/data/data/" + info.packageName + "/lib/", libPath);
         NativeEngine.redirectDirectory("/data/user/0/" + info.packageName + "/lib/", libPath);
@@ -421,6 +433,7 @@ public final class VClientImpl extends IVClient.Stub {
             Context hostContext = VirtualCore.get().getContext();
             return hostContext.createPackageContext(packageName, Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
         } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
             VirtualRuntime.crash(new RemoteException());
         }
         throw new RuntimeException();
@@ -493,7 +506,7 @@ public final class VClientImpl extends IVClient.Stub {
                     continue;
                 }
                 ProviderInfo info = ContentProviderHolderOreo.info.get(holder);
-                if (!info.authority.startsWith(StubManifest.STUB_CP_AUTHORITY)) {
+                if (!info.authority.startsWith(VASettings.STUB_CP_AUTHORITY)) {
                     provider = ProviderHook.createProxy(true, info.authority, provider);
                     ActivityThread.ProviderClientRecordJB.mProvider.set(clientRecord, provider);
                     ContentProviderHolderOreo.provider.set(holder, provider);
@@ -505,7 +518,7 @@ public final class VClientImpl extends IVClient.Stub {
                     continue;
                 }
                 ProviderInfo info = IActivityManager.ContentProviderHolder.info.get(holder);
-                if (!info.authority.startsWith(StubManifest.STUB_CP_AUTHORITY)) {
+                if (!info.authority.startsWith(VASettings.STUB_CP_AUTHORITY)) {
                     provider = ProviderHook.createProxy(true, info.authority, provider);
                     ActivityThread.ProviderClientRecordJB.mProvider.set(clientRecord, provider);
                     IActivityManager.ContentProviderHolder.provider.set(holder, provider);
@@ -513,7 +526,7 @@ public final class VClientImpl extends IVClient.Stub {
             } else {
                 String authority = ActivityThread.ProviderClientRecord.mName.get(clientRecord);
                 IInterface provider = ActivityThread.ProviderClientRecord.mProvider.get(clientRecord);
-                if (provider != null && !authority.startsWith(StubManifest.STUB_CP_AUTHORITY)) {
+                if (provider != null && !authority.startsWith(VASettings.STUB_CP_AUTHORITY)) {
                     provider = ProviderHook.createProxy(true, authority, provider);
                     ActivityThread.ProviderClientRecord.mProvider.set(clientRecord, provider);
                 }

@@ -8,7 +8,6 @@ LOCAL_CFLAGS += -fno-rtti -fno-exceptions
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/Foundation
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/MSHook
-LOCAL_C_INCLUDES += $(LOCAL_PATH)/GodinHook
 
 ARCH_FILES := \
     MSHook/Debug.cpp \

@@ -13,6 +13,7 @@ import android.content.pm.ServiceInfo;
 import android.os.IBinder;
 import android.os.RemoteException;
 
+import com.lody.virtual.client.core.VirtualCore;
 import com.lody.virtual.client.env.VirtualRuntime;
 import com.lody.virtual.helper.utils.VLog;
 import com.lody.virtual.remote.VParceledListSlice;
@@ -35,7 +36,8 @@ public class VPackageManager {
     }
 
     public IPackageManager getInterface() {
-        if (mRemote == null || !mRemote.asBinder().isBinderAlive()) {
+        if (mRemote == null ||
+                (!mRemote.asBinder().isBinderAlive() && !VirtualCore.get().isVAppProcess())) {
             synchronized (VPackageManager.class) {
                 Object remote = getRemoteInterface();
                 mRemote = LocalProxyUtils.genProxy(IPackageManager.class, remote);

@@ -2,11 +2,12 @@ package io.virtualapp;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 
 import com.lody.virtual.client.NativeEngine;
 import com.lody.virtual.client.core.VirtualCore;
-import com.lody.virtual.client.stub.StubManifest;
+import com.lody.virtual.client.stub.VASettings;
 
 import io.virtualapp.delegate.MyAppRequestListener;
 import io.virtualapp.delegate.MyComponentDelegate;
@@ -19,8 +20,8 @@ import jonathanfinerty.once.Once;
  */
 public class VApp extends Application {
 
-
     private static VApp gApp;
+    private SharedPreferences mPreferences;
 
     public static VApp getApp() {
         return gApp;
@@ -29,8 +30,9 @@ public class VApp extends Application {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
-        StubManifest.ENABLE_IO_REDIRECT = true;
-        StubManifest.ENABLE_INNER_SHORTCUT = false;
+        mPreferences = base.getSharedPreferences("va", Context.MODE_MULTI_PROCESS);
+        VASettings.ENABLE_IO_REDIRECT = true;
+        VASettings.ENABLE_INNER_SHORTCUT = false;
         try {
             VirtualCore.get().startup(base);
             NativeEngine.nativeHookExec(Build.VERSION.SDK_INT);
@@ -74,6 +76,10 @@ public class VApp extends Application {
                 virtualCore.addVisibleOutsidePackage("com.immomo.momo");
             }
         });
+    }
+
+    public static SharedPreferences getPreferences() {
+        return getApp().mPreferences;
     }
 
 }

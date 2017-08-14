@@ -176,7 +176,6 @@ public class NativeEngine {
 
     public static void hook() {
         try {
-//            int previewSdkInt = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? Build.VERSION.PREVIEW_SDK_INT : 0;
             nativeStartUniformer();
         } catch (Throwable e) {
             VLog.e(TAG, VLog.getStackTraceString(e));

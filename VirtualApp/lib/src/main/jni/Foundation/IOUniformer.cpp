@@ -8,7 +8,6 @@ static std::list<std::string> ReadOnlyPathMap;
 static std::list<std::pair<std::string, std::string> > IORedirectMap;
 int apiLevel;
 
-
 static inline void
 hook_template(void *handle, const char *symbol, void *new_func, void **old_func) {
     void *addr = dlsym(handle, symbol);
@@ -117,19 +116,6 @@ const char *IOUniformer::restore(const char *_path) {
         return _path;
     }
     std::list<std::pair<std::string, std::string> >::iterator iterator;
-    /*
-    iterator = RootIORedirectMap.find(path);
-    if (iterator != RootIORedirectMap.end()) {
-        return strdup(iterator->second.c_str());
-    }
-    for (iterator = RootIORedirectMap.begin(); iterator != RootIORedirectMap.end(); iterator++) {
-        const std::string &origin = iterator->first;
-        const std::string &redirected = iterator->second;
-        if (path == redirected) {
-            return strdup(origin.c_str());
-        }
-    }
-     */
     for (iterator = IORedirectMap.begin(); iterator != IORedirectMap.end(); iterator++) {
         const std::string &prefix = iterator->first;
         const std::string &new_prefix = iterator->second;
@@ -319,8 +305,10 @@ HOOK_DEF(int, execve, const char *pathname, char *const argv[], char *const envp
     for (int i = 0; argv[i] != NULL; ++i) {
         LOGD("argv[%i] : %s", i, newArgv[i]);
     }
-    for (int i = 0; envp[i] != NULL; ++i) {
-        LOGE("envp[%i] : %s", i, envp[i]);
+    // That string array is NULL terminated
+    new_env[i] = NULL;
+    for (int n = 0; new_env[n] != NULL; ++n) {
+        LOGE("new_env[%i] = %s", n, new_env[n]);
     }
 #endif
 
