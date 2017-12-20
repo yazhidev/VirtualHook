@@ -28,10 +28,6 @@ public class PackageSetting implements Parcelable {
     public String apkPath;
     public String libPath;
     public boolean dependSystem;
-    /**
-     * In this mode we skip the dex2oat so we can load the class.dex very fast.
-     */
-//    public boolean skipDexOpt;
     public boolean isHook;
     public int appId;
     public long firstInstallTime;
@@ -49,7 +45,6 @@ public class PackageSetting implements Parcelable {
         this.appId = in.readInt();
         //noinspection unchecked
         this.userState = in.readSparseArray(PackageUserState.class.getClassLoader());
-//        this.skipDexOpt = in.readByte() != 0;
         this.isHook = in.readByte() != 0;
     }
 
@@ -99,7 +94,6 @@ public class PackageSetting implements Parcelable {
         dest.writeInt(this.appId);
         //noinspection unchecked
         dest.writeSparseArray((SparseArray) this.userState);
-//        dest.writeByte(this.skipDexOpt ? (byte) 1 : (byte) 0);
         dest.writeByte(this.isHook ? (byte)1 : (byte)0);
     }
 

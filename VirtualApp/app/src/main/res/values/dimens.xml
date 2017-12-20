@@ -11,4 +11,6 @@
     <dimen name="desktop_divider">0.5dp</dimen>
 
     <dimen name="dsrv_defaultHotspotHeight">56dp</dimen>
+    <dimen name="line_height">40dp</dimen>
+
 </resources>
