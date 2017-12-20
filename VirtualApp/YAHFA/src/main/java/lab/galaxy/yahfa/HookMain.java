@@ -61,7 +61,7 @@ public class HookMain {
             for (Method method : hookItem.getDeclaredMethods()) {
                 if (method.getName().equals("hook") && Modifier.isStatic(method.getModifiers())) {
                     hook = method;
-                } else if (method.getName().equals("origin")  && Modifier.isStatic(method.getModifiers())) {
+                } else if (method.getName().equals("backup") && Modifier.isStatic(method.getModifiers())) {
                     backup = method;
                 }
             }
@@ -82,7 +82,7 @@ public class HookMain {
         try {
             int hookParamCount = hook.getParameterTypes().length;
             int targetParamCount = getParamCountFromSignature(methodSig);
-            // Log.d(TAG, "target method param count is "+targetParamCount);
+            Log.d(TAG, "target method param count is "+targetParamCount);
             boolean isStatic = (hookParamCount == targetParamCount);
             // virtual method has 'thiz' object as the first parameter
             findAndBackupAndHook(targetClass, methodName, methodSig, isStatic, hook, backup);

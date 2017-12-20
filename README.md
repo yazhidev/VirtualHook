@@ -13,8 +13,9 @@ Currently VirtualHook supports:
 - Android 5.0(API 21)
 - Android 5.1(API 22)
 - Android 6.0(API 23)
-- __EXPERIMENTAL__ Android 7.0(API 24)
-- __EXPERIMENTAL__ Android 7.1(API 25)
+- Android 7.0(API 24)
+- Android 7.1(API 25)
+- Android 8.0(API 26)
 
 ## ChangeLog
 
@@ -53,18 +54,6 @@ Import and build the project in Android Studio(__with Instant Run disabled__). T
 - Run VirtualHook and click the `Add` button
 - Swipe to the 'APPS IN SDCARD' page. Then select and add hook plugins which are displayed with an icon ![](/VirtualApp/app/src/main/res/drawable-xxhdpi/ic_extension_black_24dp.png)
 - Add and run non-plugin apps 
-
-## Hooking Native Methods
-
-VirtualApp comes with native method hooking ability in the first place, which is done with the following function:
-
-```cpp
-namespace Cydia{
-    void MSHookFunction(void *symbol, void *replace, void **result);
-}
-```
-
-To utilize that, you can use `dlsym()` to find the symbol and then hook your targets. Here's a [demo](https://github.com/rk700/ChangePhoneInfo/blob/master/app/src/main/jni/hookprop.c) which hooks `__system_property_get`.
 
 ## Example Hook Plugins
 

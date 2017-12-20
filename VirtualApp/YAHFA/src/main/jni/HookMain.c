@@ -7,12 +7,21 @@
 #include "env.h"
 #include "trampoline.h"
 
-static int SDKVersion;
+int SDKVersion;
 static int OFFSET_entry_point_from_interpreter_in_ArtMethod;
-static int OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod;
-static int OFFSET_hotness_count_in_ArtMethod;
+int OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod;
+int OFFSET_hotness_count_in_ArtMethod;
+static int OFFSET_dex_method_index_in_ArtMethod;
+static int OFFSET_dex_cache_resolved_methods_in_ArtMethod;
+static int OFFSET_array_in_PointerArray;
 static int OFFSET_ArtMehod_in_Object;
+static int OFFSET_access_flags_in_ArtMethod;
 static int ArtMethodSize;
+static int kAccNative = 0x0100;
+
+static inline uint16_t read16(void *addr) {
+    return *((uint16_t *)addr);
+}
 
 static inline uint32_t read32(void *addr) {
     return *((uint32_t *)addr);
@@ -27,10 +36,25 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
     SDKVersion = sdkVersion;
     LOGI("init to SDK %d", sdkVersion);
     switch(sdkVersion) {
+        case ANDROID_O:
+            OFFSET_ArtMehod_in_Object = 0;
+            OFFSET_access_flags_in_ArtMethod = 4;
+            OFFSET_hotness_count_in_ArtMethod = 4*4+2;
+            OFFSET_dex_method_index_in_ArtMethod = 4*3;
+            OFFSET_dex_cache_resolved_methods_in_ArtMethod = roundUpToPtrSize(4*4+2*2);
+            OFFSET_array_in_PointerArray = 0;
+            OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
+                    roundUpToPtrSize(4*4+2*2) + pointer_size*2;
+            ArtMethodSize = roundUpToPtrSize(4*4+2*2)+pointer_size*3;
+            break;
         case ANDROID_N2:
         case ANDROID_N:
             OFFSET_ArtMehod_in_Object = 0;
             OFFSET_hotness_count_in_ArtMethod = 4*4+2; // sizeof(GcRoot<mirror::Class>) = 4
+            OFFSET_dex_method_index_in_ArtMethod = 4*3;
+            OFFSET_dex_cache_resolved_methods_in_ArtMethod = roundUpToPtrSize(4*4+2*2);
+            OFFSET_array_in_PointerArray = 0;
+
             // ptr_sized_fields_ is rounded up to pointer_size in ArtMethod
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
                     roundUpToPtrSize(4*4+2*2) + pointer_size*3;
@@ -42,6 +66,9 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
             OFFSET_entry_point_from_interpreter_in_ArtMethod = roundUpToPtrSize(4*7);
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
                     OFFSET_entry_point_from_interpreter_in_ArtMethod + pointer_size*2;
+            OFFSET_dex_method_index_in_ArtMethod = 4*5;
+            OFFSET_dex_cache_resolved_methods_in_ArtMethod = 4;
+            OFFSET_array_in_PointerArray = 4*3;
             ArtMethodSize = roundUpToPtrSize(4*7)+pointer_size*3;
             break;
         case ANDROID_L2:
@@ -49,6 +76,9 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
             OFFSET_entry_point_from_interpreter_in_ArtMethod = roundUpToPtrSize(OFFSET_ArtMehod_in_Object+4*7);
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
                     OFFSET_entry_point_from_interpreter_in_ArtMethod+pointer_size*2;
+            OFFSET_dex_method_index_in_ArtMethod = OFFSET_ArtMehod_in_Object + 4*5;
+            OFFSET_dex_cache_resolved_methods_in_ArtMethod = OFFSET_ArtMehod_in_Object + 4;
+            OFFSET_array_in_PointerArray = 12;
             ArtMethodSize = OFFSET_entry_point_from_interpreter_in_ArtMethod+pointer_size*3;
             break;
         case ANDROID_L:
@@ -56,38 +86,20 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
             OFFSET_entry_point_from_interpreter_in_ArtMethod = OFFSET_ArtMehod_in_Object+4*4;
             OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
                     OFFSET_entry_point_from_interpreter_in_ArtMethod+8*2;
+            OFFSET_dex_method_index_in_ArtMethod = OFFSET_ArtMehod_in_Object+4*4+8*4+4*2;
+            OFFSET_dex_cache_resolved_methods_in_ArtMethod = OFFSET_ArtMehod_in_Object+4;
+            OFFSET_array_in_PointerArray = 12;
             ArtMethodSize = OFFSET_ArtMehod_in_Object+4*4+8*4+4*4;
             break;
         default:
             LOGE("not compatible with SDK %d", sdkVersion);
             break;
     }
-#if defined(__i386__)
-    trampoline1[7] = OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod;
-    if(SDKVersion < ANDROID_N) { // do not set hotness_count before N
-        memset(trampoline2+5, '\x90', 6);
-    }
-#elif defined(__arm__)
-    trampoline1[4] = (unsigned char)OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod;
-    if(SDKVersion < ANDROID_N) { // do not set hotness_count before N
-        for(i=4; i<=16; i+=4) {
-            memcpy(trampoline2+i, "\x00\x00\xa0\xe1", 4); // mov r0, r0
-        }
-    }
-#elif defined(__aarch64__)
-    if(SDKVersion < ANDROID_N) { // do not set hotness_count before N
-        memcpy(trampoline2+4, "\x1f\x20\x03\xd5", 4); // nop
-        if(SDKVersion == ANDROID_L2) {
-            memcpy(trampoline1+4, "\x10\x1c\x40\xf9", 4); //101c40f9 ; ldr x16, [x0, #56] set entry point offset
-        }
-        else if(SDKVersion == ANDROID_L) {
-            memcpy(trampoline1+4, "\x10\x14\x40\xf9", 4); //101440f9 ; ldr x16, [x0, #40] set entry point offset
-        }
-    }
-#endif
+
+    setupTrampoline();
 }
 
-static int doBackupAndHook(void *originMethod, void *hookMethod, void *backupMethod) {
+static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMethod) {
     if(hookCount >= hookCap) {
         LOGW("not enough capacity. Allocating...");
         if(doInitHookCap(DEFAULT_CAP)) {
@@ -97,47 +109,41 @@ static int doBackupAndHook(void *originMethod, void *hookMethod, void *backupMet
         LOGI("Allocating done");
     }
 
-//    LOGI("origin method is at %p, hook method is at %p, backup method is at %p",
-//         originMethod, hookMethod, backupMethod);
+    LOGI("target method is at %p, hook method is at %p, backup method is at %p",
+         targetMethod, hookMethod, backupMethod);
 
     if(!backupMethod) {
-        LOGW("backup method is null");
+        LOGW("Origin method is null. Cannot call origin");
     }
-    else { //do method backup
-        // have to copy the whole origin ArtMethod here
-        // if the origin method calls other methods which are to be resolved
+    else { // do method backup
+        // update the cached method manually
+        // first we find the array of cached methods
+        void *dexCacheResolvedMethods = (void *) readAddr(
+                (void *) ((char *) hookMethod + OFFSET_dex_cache_resolved_methods_in_ArtMethod));
+        // then we get the dex method index of the static backup method
+        int methodIndex = read32((void *) ((char *) backupMethod + OFFSET_dex_method_index_in_ArtMethod));
+        // finally the addr of backup method is put at the corresponding location in cached methods array
+        memcpy((char *) dexCacheResolvedMethods + OFFSET_array_in_PointerArray + pointer_size * methodIndex,
+               (&backupMethod),
+               pointer_size);
+
+        // have to copy the whole target ArtMethod here
+        // if the target method calls other methods which are to be resolved
         // then ToDexPC would be invoked for the caller(origin method)
         // in which case ToDexPC would use the entrypoint as a base for mapping pc to dex offset
-        // so any changes to the origin method's entrypoint would result in a wrong dex offset
+        // so any changes to the target method's entrypoint would result in a wrong dex offset
         // and artQuickResolutionTrampoline would fail for methods called by the origin method
-        void *originMethodCopy = malloc(ArtMethodSize);
-        if(!originMethodCopy) {
-            LOGE("malloc failed for copying origin method");
-            return 1;
-        }
-        memcpy(originMethodCopy, originMethod, ArtMethodSize);
-
-        void *realEntryPoint = (void *)readAddr((char *) originMethod +
-                                        OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod);
-        void *newEntryPoint = genTrampoline2(originMethodCopy, realEntryPoint);
-        if(newEntryPoint) {
-            memcpy((char *) backupMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod,
-                   &newEntryPoint, pointer_size);
-        }
-        else {
-            LOGE("failed to allocate space for backup method trampoline");
-            return 1;
-        }
+        memcpy(backupMethod, targetMethod, ArtMethodSize);
     }
 
     // replace entry point
-    void *newEntrypoint = genTrampoline1(hookMethod);
+    void *newEntrypoint = genTrampoline(hookMethod, backupMethod);
 //    LOGI("origin ep is %p, new ep is %p",
-//         readAddr((char *) originMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod),
+//         readAddr((char *) targetMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod),
 //         newEntrypoint
 //    );
     if(newEntrypoint) {
-        memcpy((char *) originMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod,
+        memcpy((char *) targetMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod,
                &newEntrypoint,
                pointer_size);
     }
@@ -147,9 +153,21 @@ static int doBackupAndHook(void *originMethod, void *hookMethod, void *backupMet
     }
 
     if(OFFSET_entry_point_from_interpreter_in_ArtMethod != 0) {
-        memcpy((char *) originMethod + OFFSET_entry_point_from_interpreter_in_ArtMethod,
+        memcpy((char *) targetMethod + OFFSET_entry_point_from_interpreter_in_ArtMethod,
                (char *) hookMethod + OFFSET_entry_point_from_interpreter_in_ArtMethod,
                pointer_size);
+    }
+
+    // set the target method to native so that Android O wouldn't invoke it with interpreter
+    if(SDKVersion >= ANDROID_O) {
+        int access_flags = read32((char *) targetMethod + OFFSET_access_flags_in_ArtMethod);
+//        LOGE("access flags is 0x%x", access_flags);
+        access_flags |= kAccNative;
+        memcpy(
+                (char *) targetMethod + OFFSET_access_flags_in_ArtMethod,
+                &access_flags,
+                4
+        );
     }
 
     LOGI("hook and backup done");
@@ -158,7 +176,8 @@ static int doBackupAndHook(void *originMethod, void *hookMethod, void *backupMet
 }
 
 void Java_lab_galaxy_yahfa_HookMain_findAndBackupAndHook(JNIEnv *env, jclass clazz,
-    jclass targetClass, jstring methodName, jstring methodSig, jboolean isStatic, jobject hook, jobject backup) {
+    jclass targetClass, jstring methodName, jstring methodSig, jboolean isStatic,
+    jobject hook, jobject backup) {
     if(!methodName || !methodSig) {
         LOGE("empty method name or signature");
         return;
@@ -170,7 +189,7 @@ void Java_lab_galaxy_yahfa_HookMain_findAndBackupAndHook(JNIEnv *env, jclass cla
         return;
     }
     void *targetMethod = NULL;
-    LOGI("Start findAndBackupAndHook for method %s%s", c_methodName, c_methodSig);
+    LOGI("Start findAndBackupAndHook for %s method %s%s", isStatic ? "static" : "non-static", c_methodName, c_methodSig);
     if(ArtMethodSize == 0) {
         LOGE("Not initialized");
         goto end;
@@ -184,12 +203,15 @@ void Java_lab_galaxy_yahfa_HookMain_findAndBackupAndHook(JNIEnv *env, jclass cla
 
     if((*env)->ExceptionCheck(env)) {
         (*env)->ExceptionClear(env);
-        LOGE("Cannot find target method %s%s%s", isStatic ? "static " : "", c_methodName, c_methodSig);
+        LOGE("Cannot find target %s method: %s%s", isStatic ? "static" : "non-static", c_methodName, c_methodSig);
         goto end;
     }
 
-    if(!doBackupAndHook(targetMethod, (void *)(*env)->FromReflectedMethod(env, hook),
-        backup==NULL ? NULL : (void *)(*env)->FromReflectedMethod(env, backup))) {
+    if(!doBackupAndHook(
+            targetMethod,
+            (void *)(*env)->FromReflectedMethod(env, hook),
+            backup==NULL ? NULL : (void *)(*env)->FromReflectedMethod(env, backup)
+    )) {
         (*env)->NewGlobalRef(env, hook); // keep a global ref so that the hook method would not be GCed
     }
 end:

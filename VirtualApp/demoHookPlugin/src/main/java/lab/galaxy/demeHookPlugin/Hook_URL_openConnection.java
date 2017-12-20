@@ -16,10 +16,10 @@ public class Hook_URL_openConnection {
     public static String methodSig = "()Ljava/net/URLConnection;";
     public static URLConnection hook(URL thiz) {
         Log.w("YAHFA", "openConnection to "+thiz.toString());
-        return origin(thiz);
+        return backup(thiz);
     }
 
-    public static URLConnection origin(URL thiz) {
+    public static URLConnection backup(URL thiz) {
         Log.w("YAHFA", "should not be here");
         return null;
     }
