@@ -206,10 +206,10 @@ public class VAppManagerService implements IAppManager {
         try {
             // copy libva-native.so so that the symbol MSHookFunction() can be accessed in patch plugin after Android N
             if(Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                File vaNativeSo = new File(libDir, "libva-native.so");
+                File vaNativeSo = new File(libDir, "libva++.so");
                 if (!vaNativeSo.exists()) {
                     FileUtils.createSymlink(
-                            new File(VEnvironment.getRoot().getParent(), "lib/libva-native.so").getAbsolutePath(),
+                            new File(VEnvironment.getRoot().getParent(), "lib/libva++.so").getAbsolutePath(),
                             vaNativeSo.getAbsolutePath());
                 }
             }
