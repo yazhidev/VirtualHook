@@ -14,12 +14,12 @@ public class Hook_File_init {
     public static String methodName = "<init>";
     public static String methodSig = "(Ljava/lang/String;)V";
     public static void hook(File thiz, String fileName) {
-        Log.w("YAHFA", "open file "+fileName);
+        Log.e("YAHFA", "open file "+fileName);
         backup(thiz, fileName);
     }
 
     public static void backup(File thiz, String fileName) {
-        Log.w("YAHFA", "should not be here");
+        Log.e("YAHFA", "should not be here");
         return;
     }
 

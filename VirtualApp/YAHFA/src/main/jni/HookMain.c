@@ -10,7 +10,6 @@
 int SDKVersion;
 static int OFFSET_entry_point_from_interpreter_in_ArtMethod;
 int OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod;
-int OFFSET_hotness_count_in_ArtMethod;
 static int OFFSET_dex_method_index_in_ArtMethod;
 static int OFFSET_dex_cache_resolved_methods_in_ArtMethod;
 static int OFFSET_array_in_PointerArray;
@@ -18,6 +17,7 @@ static int OFFSET_ArtMehod_in_Object;
 static int OFFSET_access_flags_in_ArtMethod;
 static int ArtMethodSize;
 static int kAccNative = 0x0100;
+static int kAccCompileDontBother = 0x01000000;
 
 static inline uint16_t read16(void *addr) {
     return *((uint16_t *)addr);
@@ -36,10 +36,10 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
     SDKVersion = sdkVersion;
     LOGI("init to SDK %d", sdkVersion);
     switch(sdkVersion) {
+        case ANDROID_O2:
         case ANDROID_O:
             OFFSET_ArtMehod_in_Object = 0;
             OFFSET_access_flags_in_ArtMethod = 4;
-            OFFSET_hotness_count_in_ArtMethod = 4*4+2;
             OFFSET_dex_method_index_in_ArtMethod = 4*3;
             OFFSET_dex_cache_resolved_methods_in_ArtMethod = roundUpToPtrSize(4*4+2*2);
             OFFSET_array_in_PointerArray = 0;
@@ -50,7 +50,7 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
         case ANDROID_N2:
         case ANDROID_N:
             OFFSET_ArtMehod_in_Object = 0;
-            OFFSET_hotness_count_in_ArtMethod = 4*4+2; // sizeof(GcRoot<mirror::Class>) = 4
+            OFFSET_access_flags_in_ArtMethod = 4; // sizeof(GcRoot<mirror::Class>) = 4
             OFFSET_dex_method_index_in_ArtMethod = 4*3;
             OFFSET_dex_cache_resolved_methods_in_ArtMethod = roundUpToPtrSize(4*4+2*2);
             OFFSET_array_in_PointerArray = 0;
@@ -99,6 +99,17 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
     setupTrampoline();
 }
 
+static void setNonCompilable(void *method) {
+    int access_flags = read32((char *) method + OFFSET_access_flags_in_ArtMethod);
+    LOGI("setNonCompilable: access flags is 0x%x", access_flags);
+    access_flags |= kAccCompileDontBother;
+    memcpy(
+            (char *) method + OFFSET_access_flags_in_ArtMethod,
+            &access_flags,
+            4
+    );
+}
+
 static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMethod) {
     if(hookCount >= hookCap) {
         LOGW("not enough capacity. Allocating...");
@@ -111,6 +122,14 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
 
     LOGI("target method is at %p, hook method is at %p, backup method is at %p",
          targetMethod, hookMethod, backupMethod);
+
+
+    // set kAccCompileDontBother for a method we do not want the compiler to compile
+    // so that we don't need to worry about hotness_count_
+    if(SDKVersion >= ANDROID_N) {
+        setNonCompilable(targetMethod);
+        setNonCompilable(hookMethod);
+    }
 
     if(backupMethod) {// do method backup
         // update the cached method manually
@@ -135,10 +154,10 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
 
     // replace entry point
     void *newEntrypoint = genTrampoline(hookMethod, backupMethod);
-//    LOGI("origin ep is %p, new ep is %p",
-//         readAddr((char *) targetMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod),
-//         newEntrypoint
-//    );
+    LOGI("origin ep is %p, new ep is %p",
+         readAddr((char *) targetMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod),
+         newEntrypoint
+    );
     if(newEntrypoint) {
         memcpy((char *) targetMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod,
                &newEntrypoint,
@@ -158,7 +177,7 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
     // set the target method to native so that Android O wouldn't invoke it with interpreter
     if(SDKVersion >= ANDROID_O) {
         int access_flags = read32((char *) targetMethod + OFFSET_access_flags_in_ArtMethod);
-//        LOGE("access flags is 0x%x", access_flags);
+        LOGI("access flags is 0x%x", access_flags);
         access_flags |= kAccNative;
         memcpy(
                 (char *) targetMethod + OFFSET_access_flags_in_ArtMethod,
