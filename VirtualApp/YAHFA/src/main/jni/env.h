@@ -12,6 +12,7 @@
 #define ANDROID_N2 25
 #define ANDROID_O 26
 #define ANDROID_O2 27
+#define ANDROID_P 28
 
 #define roundUpTo4(v) ((v+4-1) - ((v+4-1)&3))
 #define roundUpTo8(v) ((v+8-1) - ((v+8-1)&7))
@@ -20,7 +21,7 @@
 #define pointer_size 4
 #define readAddr(addr) read32(addr)
 #define roundUpToPtrSize(x) roundUpTo4(x)
-#elif defined(__aarch64__)
+#elif defined(__aarch64__) || defined(__x86_64__)
 #define pointer_size 8
 #define readAddr(addr) read64(addr)
 #define roundUpToPtrSize(x) roundUpTo8(x)

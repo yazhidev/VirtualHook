@@ -11,7 +11,17 @@ public class Hook_TelephonyManager_getDeviceId {
     public static String methodName = "getDeviceId";
     public static String methodSig = "()Ljava/lang/String;";
     public static String hook(Object thiz) {
-        Log.e("YAHFA", "TelephonyManager getDeviceId hooked");
-        return "123456789012345";
+
+        Log.e("YAHFA", "TelephonyManager getDeviceId hooked: ");
+        String res = backup(thiz);
+        Log.e("YAHFA", "TelephonyManager getDeviceId hooked: ");
+        return "1234567890"+res;
     }
+
+
+    public static String backup(Object thiz) {
+        Log.e("YAHFA", "should not be here");
+        return "";
+    }
+
 }

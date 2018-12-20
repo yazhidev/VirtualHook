@@ -20,7 +20,7 @@ public class Hook_File_init {
 
     public static void backup(File thiz, String fileName) {
         Log.e("YAHFA", "should not be here");
-        return;
+        throw new UnsupportedOperationException("Stub!");
     }
 
 }

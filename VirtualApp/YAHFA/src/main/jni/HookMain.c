@@ -15,7 +15,7 @@ static int OFFSET_dex_cache_resolved_methods_in_ArtMethod;
 static int OFFSET_array_in_PointerArray;
 static int OFFSET_ArtMehod_in_Object;
 static int OFFSET_access_flags_in_ArtMethod;
-static int ArtMethodSize;
+static size_t ArtMethodSize;
 static int kAccNative = 0x0100;
 static int kAccCompileDontBother = 0x01000000;
 
@@ -36,7 +36,17 @@ void Java_lab_galaxy_yahfa_HookMain_init(JNIEnv *env, jclass clazz, jint sdkVers
     SDKVersion = sdkVersion;
     LOGI("init to SDK %d", sdkVersion);
     switch(sdkVersion) {
+        case ANDROID_P:
+            kAccCompileDontBother = 0x02000000;
+            OFFSET_ArtMehod_in_Object = 0;
+            OFFSET_access_flags_in_ArtMethod = 4;
+            //OFFSET_dex_method_index_in_ArtMethod = 4*3;
+            OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod =
+                    roundUpToPtrSize(4*4+2*2) + pointer_size;
+            ArtMethodSize = roundUpToPtrSize(4*4+2*2) + pointer_size*2;
+            break;
         case ANDROID_O2:
+            kAccCompileDontBother = 0x02000000;
         case ANDROID_O:
             OFFSET_ArtMehod_in_Object = 0;
             OFFSET_access_flags_in_ArtMethod = 4;
@@ -132,16 +142,42 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
     }
 
     if(backupMethod) {// do method backup
-        // update the cached method manually
-        // first we find the array of cached methods
-        void *dexCacheResolvedMethods = (void *) readAddr(
-                (void *) ((char *) hookMethod + OFFSET_dex_cache_resolved_methods_in_ArtMethod));
-        // then we get the dex method index of the static backup method
-        int methodIndex = read32((void *) ((char *) backupMethod + OFFSET_dex_method_index_in_ArtMethod));
-        // finally the addr of backup method is put at the corresponding location in cached methods array
-        memcpy((char *) dexCacheResolvedMethods + OFFSET_array_in_PointerArray + pointer_size * methodIndex,
-               (&backupMethod),
-               pointer_size);
+        if(SDKVersion <= ANDROID_O2) {
+            // update the cached method manually
+            // first we find the array of cached methods
+            void *dexCacheResolvedMethods = (void *) readAddr(
+                    (void *) ((char *) hookMethod +
+                              OFFSET_dex_cache_resolved_methods_in_ArtMethod));
+
+            // then we get the dex method index of the static backup method
+            int methodIndex = read32(
+                    (void *) ((char *) backupMethod + OFFSET_dex_method_index_in_ArtMethod));
+
+            // finally the addr of backup method is put at the corresponding location in cached methods array
+            if(SDKVersion == ANDROID_O2) {
+                // array of MethodDexCacheType is used as dexCacheResolvedMethods in Android 8.1
+                // struct:
+                // struct NativeDexCachePair<T> = { T*, size_t idx }
+                // MethodDexCachePair = NativeDexCachePair<ArtMethod> = { ArtMethod*, size_t idx }
+                // MethodDexCacheType = std::atomic<MethodDexCachePair>
+                memcpy((char *) dexCacheResolvedMethods + OFFSET_array_in_PointerArray +
+                       pointer_size * 2 * methodIndex,
+                       (&backupMethod),
+                       pointer_size
+                );
+                memcpy((char *) dexCacheResolvedMethods + OFFSET_array_in_PointerArray +
+                       pointer_size * 2 * methodIndex + pointer_size,
+                       &methodIndex,
+                       pointer_size
+                );
+            }
+            else {
+                memcpy((char *) dexCacheResolvedMethods + OFFSET_array_in_PointerArray +
+                       pointer_size * methodIndex,
+                       (&backupMethod),
+                       pointer_size);
+            }
+        }
 
         // have to copy the whole target ArtMethod here
         // if the target method calls other methods which are to be resolved
@@ -153,7 +189,7 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
     }
 
     // replace entry point
-    void *newEntrypoint = genTrampoline(hookMethod, backupMethod);
+    void *newEntrypoint = genTrampoline(hookMethod);
     LOGI("origin ep is %p, new ep is %p",
          readAddr((char *) targetMethod + OFFSET_entry_point_from_quick_compiled_code_in_ArtMethod),
          newEntrypoint
@@ -164,7 +200,7 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
                pointer_size);
     }
     else {
-        LOGW("failed to allocate space for trampoline");
+        LOGW("failed to allocate space for trampoline of target method");
         return 1;
     }
 
@@ -177,13 +213,13 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
     // set the target method to native so that Android O wouldn't invoke it with interpreter
     if(SDKVersion >= ANDROID_O) {
         int access_flags = read32((char *) targetMethod + OFFSET_access_flags_in_ArtMethod);
-        LOGI("access flags is 0x%x", access_flags);
         access_flags |= kAccNative;
         memcpy(
                 (char *) targetMethod + OFFSET_access_flags_in_ArtMethod,
                 &access_flags,
                 4
         );
+        LOGI("access flags is 0x%x", access_flags);
     }
 
     LOGI("hook and backup done");
@@ -191,46 +227,41 @@ static int doBackupAndHook(void *targetMethod, void *hookMethod, void *backupMet
     return 0;
 }
 
-void Java_lab_galaxy_yahfa_HookMain_findAndBackupAndHook(JNIEnv *env, jclass clazz,
-    jclass targetClass, jstring methodName, jstring methodSig, jboolean isStatic,
-    jobject hook, jobject backup) {
-    if(!methodName || !methodSig) {
-        LOGE("empty method name or signature");
-        return;
-    }
+jobject Java_lab_galaxy_yahfa_HookMain_findMethodNative(JNIEnv *env, jclass clazz,
+                                                   jclass targetClass, jstring methodName, jstring methodSig) {
     const char *c_methodName = (*env)->GetStringUTFChars(env, methodName, NULL);
     const char *c_methodSig = (*env)->GetStringUTFChars(env, methodSig, NULL);
-    if(c_methodName == NULL || c_methodSig == NULL) {
-        LOGE("failed to get c string");
-        return;
-    }
-    void *targetMethod = NULL;
-    LOGI("Start findAndBackupAndHook for %s method %s%s", isStatic ? "static" : "non-static", c_methodName, c_methodSig);
-    if(ArtMethodSize == 0) {
-        LOGE("Not initialized");
-        goto end;
-    }
-    if(!isStatic) { // non-static
-        targetMethod = (void *) (*env)->GetMethodID(env, targetClass, c_methodName, c_methodSig);
-    }
-    else {// static
-        targetMethod = (void *)(*env)->GetStaticMethodID(env, targetClass, c_methodName, c_methodSig);
+    jobject ret = NULL;
+
+
+    //Try both GetMethodID and GetStaticMethodID -- Whatever works :)
+    jmethodID method = (*env)->GetMethodID(env, targetClass, c_methodName, c_methodSig);
+    if(!(*env)->ExceptionCheck(env)) {
+        ret = (*env)->ToReflectedMethod(env, targetClass, method, JNI_FALSE);
+    } else {
+        (*env)->ExceptionClear(env);
+        method = (*env)->GetStaticMethodID(env, targetClass, c_methodName, c_methodSig);
+        if(!(*env)->ExceptionCheck(env)) {
+            ret = (*env)->ToReflectedMethod(env, targetClass, method, JNI_TRUE);
+        }
     }
 
-    if((*env)->ExceptionCheck(env)) {
-        (*env)->ExceptionClear(env);
-        LOGE("Cannot find target %s method: %s%s", isStatic ? "static" : "non-static", c_methodName, c_methodSig);
-        goto end;
-    }
+    (*env)->ReleaseStringUTFChars(env, methodName, c_methodName);
+    (*env)->ReleaseStringUTFChars(env, methodSig, c_methodSig);
+    return ret;
+}
+
+jboolean Java_lab_galaxy_yahfa_HookMain_backupAndHookNative(JNIEnv *env, jclass clazz,
+                                                  jobject target, jobject hook, jobject backup) {
 
     if(!doBackupAndHook(
-            targetMethod,
+            (void *)(*env)->FromReflectedMethod(env, target),
             (void *)(*env)->FromReflectedMethod(env, hook),
             backup==NULL ? NULL : (void *)(*env)->FromReflectedMethod(env, backup)
     )) {
         (*env)->NewGlobalRef(env, hook); // keep a global ref so that the hook method would not be GCed
+        return JNI_TRUE;
+    } else {
+        return JNI_FALSE;
     }
-end:
-    (*env)->ReleaseStringUTFChars(env, methodName, c_methodName);
-    (*env)->ReleaseStringUTFChars(env, methodSig, c_methodSig);
 }

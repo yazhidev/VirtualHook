@@ -500,6 +500,7 @@ char **build_new_env(char *const envp[]) {
     } else {
         sprintf(ld_preload, "LD_PRELOAD=%s", so_path);
     }
+    ALOGE("[TEST] LD_PRELOAD is %s", ld_preload);
     int new_envp_count = orig_envp_count
                          + get_keep_item_count()
                          + get_forbidden_item_count()
@@ -509,15 +510,18 @@ char **build_new_env(char *const envp[]) {
     }
     char **new_envp = (char **) malloc(new_envp_count * sizeof(char *));
     int cur = 0;
-    new_envp[cur++] = ld_preload;
+    if(strlen(ld_preload) == strlen("LD_PRELOAD="))
+        new_envp[cur++] = ld_preload;
     for (int i = 0; i < orig_envp_count; ++i) {
         if (i != provided_ld_preload_index) {
             new_envp[cur++] = envp[i];
+//            ALOGE("[TEST] new env: %s", envp[i]);
         }
     }
     for (int i = 0; environ[i]; ++i) {
         if (environ[i][0] == 'V' && environ[i][1] == '_') {
             new_envp[cur++] = environ[i];
+//            ALOGE("[TEST] new env: %s", environ[i]);
         }
     }
     new_envp[cur] = NULL;
@@ -554,26 +558,28 @@ HOOK_DEF(int, execve, const char *pathname, char *argv[], char *const envp[]) {
      * We will support 64Bit to adopt it.
      */
     ALOGE("execve : %s", pathname);
-    int res;
-    const char *redirect_path = relocate_path(pathname, &res);
-    char *ld = getenv("LD_PRELOAD");
-    if (ld) {
-        if (strstr(ld, "libNimsWrap.so") || strstr(ld, "stamina.so")) {
-            int ret = syscall(__NR_execve, redirect_path, argv, envp);
-            FREE(redirect_path, pathname);
-            return ret;
-        }
-    }
+//    char *ld = getenv("LD_PRELOAD");
+//    if (ld) {
+//        if (strstr(ld, "libNimsWrap.so") || strstr(ld, "stamina.so")) {
+//            int ret = syscall(__NR_execve, redirect_path, argv, envp);
+//            FREE(redirect_path, pathname);
+//            return ret;
+//        }
+//    }
     if (strstr(pathname, "dex2oat")) {
         char **new_envp = build_new_env(envp);
 		char **new_argv = patchArgv(argv);
-        int ret = syscall(__NR_execve, redirect_path, new_argv, new_envp);
-        FREE(redirect_path, pathname);
+        int ret = syscall(__NR_execve, pathname, new_argv, new_envp);
+//        int ret = syscall(__NR_execve, pathname, new_argv, envp);
         free(new_argv);
         free(new_envp);
         return ret;
     }
+
+    int res;
+    const char *redirect_path = relocate_path(pathname, &res);
     int ret = syscall(__NR_execve, redirect_path, argv, envp);
+//    int ret = syscall(__NR_execve, pathname, argv, envp);
     FREE(redirect_path, pathname);
     return ret;
 }
@@ -611,12 +617,11 @@ HOOK_DEF(void*, do_dlopen_V24, const char *name, int flags, const void *extinfo,
 }
 
 
-
 //void *dlsym(void *handle,const char *symbol)
-HOOK_DEF(void*, dlsym, void *handle, char *symbol) {
-    ALOGD("dlsym : %p %s.", handle, symbol);
-    return orig_dlsym(handle, symbol);
-}
+//HOOK_DEF(void*, dlsym, void *handle, char *symbol) {
+//    ALOGD("dlsym : %p %s.", handle, symbol);
+//    return orig_dlsym(handle, symbol);
+//}
 
 // int kill(pid_t pid, int sig);
 HOOK_DEF(int, kill, pid_t pid, int sig) {
@@ -625,9 +630,9 @@ HOOK_DEF(int, kill, pid_t pid, int sig) {
     return ret;
 }
 
-HOOK_DEF(pid_t, vfork) {
-    return fork();
-}
+//HOOK_DEF(pid_t, vfork) {
+//    return fork();
+//}
 
 __END_DECLS
 // end IO DEF
@@ -643,13 +648,19 @@ int findSymbol(const char *name, const char *libn,
 
 void hook_dlopen(int api_level) {
     void *symbol = NULL;
-    if (api_level > 23) {
+    if(api_level >= ANDROID_O) {
+        if( findSymbol("__dl__Z9do_dlopenPKciPK17android_dlextinfoPKv", "linker",
+                       (unsigned long *) &symbol) == 0) {
+            MSHookFunction(symbol, (void *) new_do_dlopen_V24,
+                           (void **) &orig_do_dlopen_V24);
+        }
+    } else if (api_level >= ANDROID_N) {
         if (findSymbol("__dl__Z9do_dlopenPKciPK17android_dlextinfoPv", "linker",
                        (unsigned long *) &symbol) == 0) {
             MSHookFunction(symbol, (void *) new_do_dlopen_V24,
                           (void **) &orig_do_dlopen_V24);
         }
-    } else if (api_level >= 19) {
+    } else if (api_level >= ANDROID_L) {
         if (findSymbol("__dl__Z9do_dlopenPKciPK17android_dlextinfo", "linker",
                        (unsigned long *) &symbol) == 0) {
             MSHookFunction(symbol, (void *) new_do_dlopen_V19,

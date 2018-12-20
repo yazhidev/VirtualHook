@@ -18,6 +18,10 @@
 
 #include "Jni/Helper.h"
 
+#define ANDROID_O 26
+#define ANDROID_N 24
+#define ANDROID_M 23
+#define ANDROID_L 21
 
 #define HOOK_SYMBOL(handle, func) hook_function(handle, #func, (void*) new_##func, (void**) &orig_##func)
 #define HOOK_DEF(ret, func, ...) \
