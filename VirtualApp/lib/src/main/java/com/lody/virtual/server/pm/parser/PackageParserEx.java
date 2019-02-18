@@ -172,7 +172,9 @@ public class PackageParserEx {
             }
         }
         cache.applicationInfo = p.applicationInfo;
-        cache.mSignatures = p.mSignatures;
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            cache.mSignatures = p.mSignatures;
+        }
         cache.mAppMetaData = p.mAppMetaData;
         cache.packageName = p.packageName;
         cache.mPreferredOrder = p.mPreferredOrder;

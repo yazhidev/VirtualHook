@@ -25,6 +25,7 @@ import mirror.android.content.pm.PackageParserLollipop;
 import mirror.android.content.pm.PackageParserLollipop22;
 import mirror.android.content.pm.PackageParserMarshmallow;
 import mirror.android.content.pm.PackageParserNougat;
+import mirror.android.content.pm.PackageParserPie;
 import mirror.android.content.pm.PackageUserState;
 
 import static android.os.Build.VERSION_CODES.JELLY_BEAN;
@@ -33,6 +34,7 @@ import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
+import static android.os.Build.VERSION_CODES.P;
 
 /**
  * @author Lody
@@ -170,7 +172,9 @@ public class PackageParserCompat {
     }
 
     public static void collectCertificates(PackageParser parser, Package p, int flags) throws Throwable {
-        if (API_LEVEL >= N) {
+        if (API_LEVEL >= P) {
+            PackageParserPie.collectCertificates.callWithException(p, false);
+        } else if (API_LEVEL >= N) {
             PackageParserNougat.collectCertificates.callWithException(p, flags);
         } else if (API_LEVEL >= M) {
             PackageParserMarshmallow.collectCertificates.callWithException(parser, p, flags);
